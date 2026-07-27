@@ -829,7 +829,7 @@ class PrismaStore {
           },
           {
             moderationStatus: {
-              notIn: ['APPROVED', 'REMOVED', 'REJECTED'],
+              notIn: ['REMOVED', 'REJECTED'],
             },
           },
         ],
