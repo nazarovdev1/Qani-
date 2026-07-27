@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "prisma generate && vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "vercel-build": "prisma generate && vite build",
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.cjs",
     "lint": "tsc --noEmit",
+    "postinstall": "prisma generate",
     "db:seed": "tsx server/db/seed.ts",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate"

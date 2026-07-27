@@ -174,35 +174,70 @@ export const CameraRecorder: React.FC<CameraRecorderProps> = ({ challenge, lang,
     telegram.haptic('click');
 
     try {
-      // 1. Direct FormData Upload
-      const formData = new FormData();
-      formData.append('video', videoBlob, 'recording.mp4');
-
-      setUploadProgress(40);
-      const uploadRes = await fetch('/api/submissions/upload-direct', {
+      // STEP 1: Get upload URL (cloud presigned or local endpoint)
+      setUploadProgress(20);
+      const presignRes = await apiRequest('/submissions/upload-url', {
         method: 'POST',
-        headers: {
-          'x-telegram-init-data': telegram.initData || '',
-          'x-mock-user-id': localStorage.getItem('qani_mock_user_id') || 'user_001'
-        },
-        body: formData
+        body: JSON.stringify({ filename: 'recording.mp4', mimeType: 'video/mp4' })
       });
 
-      const uploadJson = await uploadRes.json();
-      setUploadProgress(80);
-
-      if (!uploadJson.success || !uploadJson.data?.fileUrl) {
-        throw new Error(uploadJson.error?.message || 'Fayl yuklashda xatolik.');
+      if (!presignRes.success || !presignRes.data) {
+        throw new Error(presignRes.error?.message || 'Yuklash URL olishda xatolik.');
       }
 
-      const fileUrl = uploadJson.data.fileUrl;
+      const { uploadUrl, fileKey, publicUrl } = presignRes.data as {
+        uploadUrl: string;
+        fileKey: string;
+        publicUrl: string;
+      };
 
-      // 2. Create Submission Record
+      let finalPublicUrl = publicUrl;
+
+      // STEP 2: Upload video
+      setUploadProgress(50);
+
+      if (uploadUrl.startsWith('http')) {
+        // Cloud direct upload (Supabase signed URL)
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'video/mp4',
+          },
+          body: videoBlob,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error(`Cloud upload failed: ${uploadRes.status}`);
+        }
+      } else {
+        // Local / Vercel direct upload through API
+        const formData = new FormData();
+        formData.append('video', videoBlob, 'recording.mp4');
+
+        const directRes = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'x-telegram-init-data': telegram.initData || '',
+            'x-mock-user-id': localStorage.getItem('qani_mock_user_id') || 'user_001'
+          },
+          body: formData
+        });
+
+        const directJson = await directRes.json();
+        if (!directJson.success || !directJson.data?.fileUrl) {
+          throw new Error(directJson.error?.message || 'Fayl yuklashda xatolik.');
+        }
+        finalPublicUrl = directJson.data.fileUrl;
+      }
+
+      setUploadProgress(80);
+
+      // STEP 3: Create Submission Record
       const subRes = await apiRequest('/submissions', {
         method: 'POST',
         body: JSON.stringify({
           challengeId: challenge.id,
-          videoUrl: fileUrl,
+          videoUrl: finalPublicUrl,
           durationSec: duration
         })
       });

@@ -213,7 +213,7 @@ apiRouter.post('/submissions/upload-url', async (req: AuthenticatedRequest, res:
     const filename = req.body.filename || 'video.mp4';
     const mimeType = req.body.mimeType || 'video/mp4';
 
-    const presigned = storageService.getPresignedUploadUrl(filename, mimeType);
+    const presigned = await storageService.getPresignedUploadUrl(filename, mimeType);
     res.json({
       success: true,
       data: presigned
