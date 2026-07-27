@@ -171,3 +171,11 @@ export interface AuditLog {
   ipAddress?: string;
   createdAt: string;
 }
+
+export interface Comment {
+  id: string;
+  userId: string;
+  submissionId: string;
+  text: string;
+  createdAt: string;
+}

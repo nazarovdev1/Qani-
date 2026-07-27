@@ -383,6 +383,21 @@ apiRouter.post('/reports', async (req: AuthenticatedRequest, res: Response) => {
       return sendError(res, 400, 'REPORT_FAILED', result.message);
     }
 
+    // Notify admins about the new report
+    try {
+      const admins = await db.getAdminUsers();
+      for (const admin of admins) {
+        await db.createNotification(
+          admin.id,
+          'Yangi Report!',
+          `Foydalanuvchi video xabar qildi. Sabab: ${reason}. ${details ? 'Izoh: ' + details : ''}`,
+          'REPORT'
+        );
+      }
+    } catch (notifyErr) {
+      console.error('Admin notification error:', notifyErr);
+    }
+
     await db.logAnalytics('REPORT_CREATED', user.id, undefined, { submissionId, reason });
 
     res.json({
@@ -574,7 +589,7 @@ apiRouter.get('/admin/moderation', requireAdmin, async (_req: AuthenticatedReque
 
 apiRouter.post('/admin/moderation/action', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { submissionId, action } = req.body;
+    const { submissionId, action, reason } = req.body;
     if (!submissionId || !action) {
       return sendError(res, 400, 'INVALID_INPUT', 'Submission ID va action talab etiladi.');
     }
@@ -592,6 +607,15 @@ apiRouter.post('/admin/moderation/action', requireAdmin, async (req: Authenticat
       }
       moderationStatus = 'REMOVED';
     }
+    else if (action === 'WARN_USER') {
+      // Send warning notification to the submission owner
+      const data = db.getData();
+      const sub = data.submissions.find(s => s.id === submissionId);
+      if (sub) {
+        await db.createNotification(sub.userId, 'Video Ogohlantirildi', reason || 'Videongiz moderator tomonidan ko‘rib chiqildi. Iltimos, qoidalarga rioya qiling.', 'WARNING');
+      }
+      moderationStatus = 'APPROVED'; // Keep video but warn user
+    }
 
     if (moderationStatus) {
       await db.updateSubmissionModeration(submissionId, moderationStatus);
@@ -607,7 +631,84 @@ apiRouter.post('/admin/moderation/action', requireAdmin, async (req: Authenticat
   }
 });
 
-// ─── 10. Analytics Logging ────────────────────────────────────
+apiRouter.post('/admin/make-super-admin', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    if (user.role === 'SUPER_ADMIN') {
+      return res.json({ success: true, message: 'Siz allaqachon Super Admin ekansiz.' });
+    }
+    await db.updateUser(user.id, { role: 'SUPER_ADMIN' });
+    res.json({ success: true, message: 'Endi siz Super Admin ekansiz. Sahifani yangilang.' });
+  } catch (err) {
+    console.error('/admin/make-super-admin error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Rolni yangilashda xatolik.');
+  }
+});
+
+apiRouter.get('/admin/notifications', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const notifications = await db.getNotifications(req.user!.id);
+    res.json({ success: true, data: { notifications } });
+  } catch (err) {
+    console.error('/admin/notifications error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Notificationlarni olishda xatolik.');
+  }
+});
+
+apiRouter.post('/admin/notifications/:id/read', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    await db.markNotificationRead(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('/admin/notifications/:id/read error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Notificationni o‘qilgan deb belgilashda xatolik.');
+  }
+});
+
+// ─── 11. Comments ────────────────────────────────────────────
+
+apiRouter.get('/submissions/:id/comments', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const comments = await db.getCommentsBySubmission(req.params.id);
+    res.json({ success: true, data: { comments } });
+  } catch (err) {
+    console.error('/submissions/:id/comments error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Kommentlarni olishda xatolik.');
+  }
+});
+
+apiRouter.post('/submissions/:id/comments', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { text } = req.body;
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      return sendError(res, 400, 'INVALID_INPUT', 'Komment matni kiritilmadi.');
+    }
+    if (text.trim().length > 500) {
+      return sendError(res, 400, 'INVALID_INPUT', 'Komment 500 ta belgidan oshmasligi kerak.');
+    }
+
+    const user = req.user!;
+    const comment = await db.createComment(user.id, req.params.id, text.trim());
+    res.json({ success: true, data: { comment } });
+  } catch (err) {
+    console.error('/submissions/:id/comments POST error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Komment qo‘shishda xatolik.');
+  }
+});
+
+apiRouter.delete('/comments/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+    const result = await db.deleteComment(req.params.id, user.id, isAdmin);
+    res.json(result);
+  } catch (err) {
+    console.error('/comments/:id DELETE error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Komment o‘chirishda xatolik.');
+  }
+});
+
+// ─── 12. Analytics Logging ────────────────────────────────────
 
 apiRouter.post('/analytics/event', async (req: AuthenticatedRequest, res: Response) => {
   try {

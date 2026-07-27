@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FeedItem } from '../../types';
 import { Language } from '../../i18n';
 import { MapPin, Flag, EyeOff, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { CommentSection } from './CommentSection';
 import { apiRequest } from '../../lib/api';
 import { telegram } from '../../lib/telegram';
 
@@ -9,6 +10,7 @@ interface VideoCardProps {
   item: FeedItem;
   isLocked: boolean;
   lang: Language;
+  currentUser: import('../../types').User | null;
   onUnlockClick: () => void;
   onReportClick: (submissionId: string) => void;
 }
@@ -17,6 +19,7 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   item,
   isLocked,
   lang,
+  currentUser,
   onUnlockClick,
   onReportClick
 }) => {
@@ -207,6 +210,14 @@ export const VideoCard: React.FC<VideoCardProps> = ({
           })}
         </div>
       </div>
+
+      {/* Comments Section */}
+      <CommentSection
+        submissionId={item.id}
+        currentUser={currentUser}
+        isLocked={isLocked}
+        lang={lang}
+      />
     </div>
   );
 };

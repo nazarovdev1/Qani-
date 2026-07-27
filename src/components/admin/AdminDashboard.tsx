@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Challenge, AdminAnalytics, Submission } from '../../types';
 import { Language } from '../../i18n';
-import { Shield, Users, Video, AlertTriangle, Plus, CheckCircle2, XCircle, Trash2, Ban } from 'lucide-react';
+import { Shield, Users, Video, AlertTriangle, Plus, CheckCircle2, XCircle, Trash2, Ban, Bell, MessageSquare, MessageCircle } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import { telegram } from '../../lib/telegram';
 
@@ -13,6 +13,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [flaggedSubs, setFlaggedSubs] = useState<Array<Submission & { userName: string }>>([]);
+  const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; type: string; isRead: boolean; createdAt: string }>>([]);
   const [loading, setLoading] = useState(true);
 
   // Challenge Form Modal
@@ -25,16 +26,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
 
   const fetchAdminData = async () => {
     setLoading(true);
-    const [analyticsRes, challengesRes, modRes] = await Promise.all([
+    const [analyticsRes, challengesRes, modRes, notifRes] = await Promise.all([
       apiRequest<AdminAnalytics>('/admin/dashboard'),
       apiRequest<{ challenges: Challenge[] }>('/challenges'),
-      apiRequest<{ flaggedSubmissions: Array<Submission & { userName: string }> }>('/admin/moderation')
+      apiRequest<{ flaggedSubmissions: Array<Submission & { userName: string }> }>('/admin/moderation'),
+      apiRequest<{ notifications: Array<{ id: string; title: string; message: string; type: string; isRead: boolean; createdAt: string }> }>('/admin/notifications')
     ]);
     setLoading(false);
 
     if (analyticsRes.success && analyticsRes.data) setAnalytics(analyticsRes.data);
     if (challengesRes.success && challengesRes.data?.challenges) setChallenges(challengesRes.data.challenges);
     if (modRes.success && modRes.data?.flaggedSubmissions) setFlaggedSubs(modRes.data.flaggedSubmissions);
+    if (notifRes.success && notifRes.data?.notifications) setNotifications(notifRes.data.notifications);
   };
 
   useEffect(() => {
@@ -79,17 +82,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
     }
   };
 
-  const handleModerationAction = async (submissionId: string, action: 'APPROVE' | 'REJECT' | 'REMOVE' | 'BLOCK_USER') => {
+  const handleModerationAction = async (submissionId: string, action: 'APPROVE' | 'REJECT' | 'REMOVE' | 'BLOCK_USER' | 'WARN_USER', reason?: string) => {
     telegram.haptic('click');
     const res = await apiRequest('/admin/moderation/action', {
       method: 'POST',
-      body: JSON.stringify({ submissionId, action })
+      body: JSON.stringify({ submissionId, action, reason })
     });
 
     if (res.success) {
       telegram.haptic('success');
       fetchAdminData();
     }
+  };
+
+  const handleMarkNotificationRead = async (id: string) => {
+    await apiRequest(`/admin/notifications/${id}/read`, { method: 'POST' });
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
   };
 
   return (
@@ -101,16 +109,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
           <span>QANI? Admin Paneli</span>
         </div>
 
-        <button
-          onClick={() => {
-            telegram.haptic('click');
-            setShowCreateModal(true);
-          }}
-          className="py-1.5 px-3 bg-[#000000] text-[#00FF00] hover:bg-[#FFFFFF] hover:text-[#000000] text-xs font-black uppercase border-2 border-[#000000] shadow-[2px_2px_0px_#000000] flex items-center space-x-1 transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Yangi Challenge</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          {/* Notification Bell */}
+          <div className="relative">
+            <Bell className="w-5 h-5 text-[#FFFFFF]" />
+            {notifications.filter(n => !n.isRead).length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-[#000000] text-[#00FF00] text-[9px] font-black px-1 py-0.5 border border-[#FFFFFF]">
+                {notifications.filter(n => !n.isRead).length}
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              telegram.haptic('click');
+              setShowCreateModal(true);
+            }}
+            className="py-1.5 px-3 bg-[#000000] text-[#00FF00] hover:bg-[#FFFFFF] hover:text-[#000000] text-xs font-black uppercase border-2 border-[#000000] shadow-[2px_2px_0px_#000000] flex items-center space-x-1 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Yangi Challenge</span>
+          </button>
+        </div>
       </div>
 
       {/* Analytics Dashboard Grid */}
@@ -194,6 +214,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
                   </button>
 
                   <button
+                    onClick={() => handleModerationAction(sub.id, 'WARN_USER', 'Iltimos, qoidalarga rioya qiling. Keyingi safar ogohlantirishsiz o‘chiriladi.')}
+                    className="flex-1 py-1.5 bg-[#FFCC00] text-[#000000] border-2 border-[#000000] text-[11px] font-black uppercase flex items-center justify-center space-x-1 shadow-[2px_2px_0px_#000000]"
+                    title="Foydalanuvchini ogohlantirish"
+                  >
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    <span>Ogohlantirish</span>
+                  </button>
+
+                  <button
                     onClick={() => handleModerationAction(sub.id, 'REMOVE')}
                     className="flex-1 py-1.5 bg-[#FF4D00] text-[#FFFFFF] border-2 border-[#000000] text-[11px] font-black uppercase flex items-center justify-center space-x-1 shadow-[2px_2px_0px_#000000]"
                   >
@@ -214,6 +243,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
           </div>
         )}
       </div>
+
+      {/* Notifications Panel */}
+      {notifications.length > 0 && (
+        <div className="bg-[#FFFFFF] border-4 border-[#000000] p-4 shadow-[6px_6px_0px_#000000] space-y-3">
+          <h3 className="font-black text-xs uppercase text-[#000000] flex items-center space-x-1.5 border-b-2 border-[#000000] pb-2">
+            <Bell className="w-4 h-4 text-[#000000]" />
+            <span>Xabarlar ({notifications.filter(n => !n.isRead).length} o‘qilmagan)</span>
+          </h3>
+
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {notifications.map(n => (
+              <div
+                key={n.id}
+                className={`p-2.5 border-2 border-[#000000] text-xs ${n.isRead ? 'bg-[#F0F0F0]' : 'bg-[#00FF00]'} flex items-start justify-between space-x-2`}
+              >
+                <div className="flex-1">
+                  <p className="font-black uppercase text-[#000000]">{n.title}</p>
+                  <p className="text-[10px] font-semibold text-[#000000] mt-0.5 leading-relaxed">{n.message}</p>
+                  <p className="text-[9px] text-[#000000]/60 mt-1">{new Date(n.createdAt).toLocaleString('uz-UZ')}</p>
+                </div>
+                {!n.isRead && (
+                  <button
+                    onClick={() => handleMarkNotificationRead(n.id)}
+                    className="shrink-0 px-2 py-1 bg-[#000000] text-[#00FF00] text-[9px] font-black uppercase border border-[#000000] hover:bg-[#FFFFFF] hover:text-[#000000] transition-colors"
+                  >
+                    O‘qildi
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Create Challenge Modal */}
       {showCreateModal && (

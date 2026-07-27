@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FeedItem, Challenge } from '../../types';
+import { FeedItem, Challenge, User } from '../../types';
 import { Language, translations } from '../../i18n';
 import { VideoCard } from './VideoCard';
 import { ReportModal } from './ReportModal';
@@ -8,10 +8,11 @@ import { Users, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface VideoFeedProps {
   lang: Language;
+  currentUser: User | null;
   onNavigateToChallenge: () => void;
 }
 
-export const VideoFeed: React.FC<VideoFeedProps> = ({ lang, onNavigateToChallenge }) => {
+export const VideoFeed: React.FC<VideoFeedProps> = ({ lang, currentUser, onNavigateToChallenge }) => {
   const t = translations[lang];
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [isLocked, setIsLocked] = useState(false);
@@ -95,6 +96,7 @@ export const VideoFeed: React.FC<VideoFeedProps> = ({ lang, onNavigateToChalleng
               item={item}
               isLocked={isLocked}
               lang={lang}
+              currentUser={currentUser}
               onUnlockClick={onNavigateToChallenge}
               onReportClick={(id) => setReportSubmissionId(id)}
             />

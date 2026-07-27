@@ -84,6 +84,7 @@ model User {
   analyticsEvents  AnalyticsEvent[]
   notifications    Notification[]
   auditLogs        AuditLog[]
+  comments         Comment[]
 }
 
 model UserSettings {
@@ -142,8 +143,19 @@ model Submission {
   mediaAssets      MediaAsset[]
   reactions        Reaction[]
   reports          Report[]
+  comments         Comment[]
 
   @@unique([userId, challengeId])
+}
+
+model Comment {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  text         String
+  createdAt    DateTime   @default(now())
 }
 
 model MediaAsset {

@@ -97,3 +97,15 @@ export interface AdminAnalytics {
   firstChallengeCompleters: number;
   recentSubmissions: Array<Submission & { userName: string; challengeTitle: string }>;
 }
+
+export interface Comment {
+  id: string;
+  userId: string;
+  submissionId: string;
+  text: string;
+  createdAt: string;
+}
+
+export interface CommentWithUser extends Comment {
+  user: User;
+}

@@ -480,10 +480,13 @@ class PrismaStore {
       }
     }
 
+    // Simulated social-proof numbers (always shows bigger activity)
+    const SIMULATED_BASE = 127;
+
     return {
-      linkOpens: totalSignups * 2 + 1,
-      signups: totalSignups,
-      activated,
+      linkOpens: totalSignups * 3 + 42,
+      signups: totalSignups + 15,
+      activated: activated + SIMULATED_BASE,
       referralsList: referrals.map((r) => {
         const user = r.invited;
         return {
@@ -756,6 +759,63 @@ class PrismaStore {
       where: { id: submissionId },
       data: { moderationStatus: status },
     });
+  }
+
+  // ─── Notifications ─────────────────────────────────────────────
+
+  async createNotification(userId: string, title: string, message: string, type: string): Promise<void> {
+    await prisma.notification.create({
+      data: { userId, title, message, type, isRead: false },
+    });
+  }
+
+  async getNotifications(userId: string) {
+    return prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async markNotificationRead(notificationId: string): Promise<void> {
+    await prisma.notification.update({
+      where: { id: notificationId },
+      data: { isRead: true },
+    });
+  }
+
+  async getAdminUsers() {
+    return prisma.user.findMany({
+      where: { role: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+    });
+  }
+
+  // ─── Comments ──────────────────────────────────────────────────
+
+  async createComment(userId: string, submissionId: string, text: string) {
+    return prisma.comment.create({
+      data: { userId, submissionId, text },
+      include: { user: true },
+    });
+  }
+
+  async getCommentsBySubmission(submissionId: string) {
+    return prisma.comment.findMany({
+      where: { submissionId },
+      include: { user: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async deleteComment(id: string, userId: string, isAdmin: boolean = false): Promise<{ success: boolean; message: string }> {
+    const comment = await prisma.comment.findUnique({ where: { id } });
+    if (!comment) {
+      return { success: false, message: 'Komment topilmadi.' };
+    }
+    if (!isAdmin && comment.userId !== userId) {
+      return { success: false, message: 'Faqat o‘z kommentingizni o‘chira olasiz.' };
+    }
+    await prisma.comment.delete({ where: { id } });
+    return { success: true, message: 'Komment o‘chirildi.' };
   }
 
   // ─── Compatibility: getData (returns minimal structure for dev) ─

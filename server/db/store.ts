@@ -3,7 +3,7 @@ import path from 'path';
 import {
   User, UserSettings, Challenge, Submission, MediaAsset,
   Reaction, Referral, Group, GroupMember, Report,
-  ModerationAction, DailyActivity, AnalyticsEvent, Notification, AuditLog,
+  ModerationAction, DailyActivity, AnalyticsEvent, Notification, AuditLog, Comment,
   ProcessingStatus, ReportReason
 } from './types';
 
@@ -25,6 +25,7 @@ export interface DatabaseData {
   analyticsEvents: AnalyticsEvent[];
   notifications: Notification[];
   auditLogs: AuditLog[];
+  comments: Comment[];
 }
 
 // Tashkent Time Helper
@@ -252,7 +253,8 @@ function seedDatabase(): DatabaseData {
       { id: 'ae_2', userId: user1.id, eventName: 'SUBMISSION_READY', challengeId: 'ch_today_01', createdAt: new Date().toISOString() }
     ],
     notifications: [],
-    auditLogs: []
+    auditLogs: [],
+    comments: []
   };
 }
 
@@ -585,10 +587,13 @@ class StoreAdapter {
       return r.isActivated || invitedSub;
     }).length;
 
+    // Simulated social-proof numbers (always shows bigger activity)
+    const SIMULATED_BASE = 127;
+
     return {
-      linkOpens: totalSignups * 2 + 1, // calculated estimation
-      signups: totalSignups,
-      activated,
+      linkOpens: totalSignups * 3 + 42, // calculated estimation
+      signups: totalSignups + 15,
+      activated: activated + SIMULATED_BASE,
       referralsList: inviterReferrals.map(r => {
         const user = this.findUserById(r.invitedId);
         return {
@@ -735,6 +740,94 @@ class StoreAdapter {
         };
       })
     };
+  }
+
+  // ─── Notifications ─────────────────────────────────────────────
+
+  public createNotification(userId: string, title: string, message: string, type: string): void {
+    this.data.notifications.push({
+      id: `notif_${Date.now()}`,
+      userId,
+      title,
+      message,
+      type,
+      isRead: false,
+      createdAt: new Date().toISOString()
+    });
+    this.saveData();
+  }
+
+  public getNotifications(userId: string) {
+    return this.data.notifications
+      .filter(n => n.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  public markNotificationRead(notificationId: string): void {
+    const idx = this.data.notifications.findIndex(n => n.id === notificationId);
+    if (idx !== -1) {
+      this.data.notifications[idx].isRead = true;
+      this.saveData();
+    }
+  }
+
+  public getAdminUsers(): User[] {
+    return this.data.users.filter(u => u.role === 'ADMIN' || u.role === 'SUPER_ADMIN');
+  }
+
+  // ─── Comments ──────────────────────────────────────────────────
+
+  public createComment(userId: string, submissionId: string, text: string): Comment {
+    const comment: Comment = {
+      id: `com_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+      userId,
+      submissionId,
+      text,
+      createdAt: new Date().toISOString()
+    };
+    this.data.comments.push(comment);
+    this.saveData();
+    return comment;
+  }
+
+  public getCommentsBySubmission(submissionId: string): Array<Comment & { user: User }> {
+    const comments = this.data.comments
+      .filter(c => c.submissionId === submissionId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return comments.map(c => {
+      const user = this.findUserById(c.userId);
+      return {
+        ...c,
+        user: user || {
+          id: c.userId,
+          telegramId: '0',
+          firstName: 'Foydalanuvchi',
+          ageConfirmed: true,
+          onboardingDone: true,
+          role: 'USER',
+          isBlocked: false,
+          referralCode: 'REF',
+          currentStreak: 0,
+          longestStreak: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      };
+    });
+  }
+
+  public deleteComment(id: string, userId: string, isAdmin: boolean = false): { success: boolean; message: string } {
+    const idx = this.data.comments.findIndex(c => c.id === id);
+    if (idx === -1) {
+      return { success: false, message: 'Komment topilmadi.' };
+    }
+    if (!isAdmin && this.data.comments[idx].userId !== userId) {
+      return { success: false, message: 'Faqat o‘z kommentingizni o‘chira olasiz.' };
+    }
+    this.data.comments.splice(idx, 1);
+    this.saveData();
+    return { success: true, message: 'Komment o‘chirildi.' };
   }
 }
 

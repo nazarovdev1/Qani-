@@ -240,6 +240,59 @@ export const db = {
     }
   },
 
+  // ─── Notifications ───────────────────────────────────────────
+
+  async createNotification(userId: string, title: string, message: string, type: string) {
+    if (postgresAvailable) {
+      return prismaStore.createNotification(userId, title, message, type);
+    }
+    return dbStore.createNotification(userId, title, message, type);
+  },
+
+  async getNotifications(userId: string) {
+    if (postgresAvailable) {
+      return prismaStore.getNotifications(userId);
+    }
+    return dbStore.getNotifications(userId);
+  },
+
+  async markNotificationRead(notificationId: string) {
+    if (postgresAvailable) {
+      return prismaStore.markNotificationRead(notificationId);
+    }
+    return dbStore.markNotificationRead(notificationId);
+  },
+
+  async getAdminUsers() {
+    if (postgresAvailable) {
+      return prismaStore.getAdminUsers();
+    }
+    return dbStore.getAdminUsers();
+  },
+
+  // ─── Comments ─────────────────────────────────────────────────
+
+  async createComment(userId: string, submissionId: string, text: string) {
+    if (postgresAvailable) {
+      return prismaStore.createComment(userId, submissionId, text);
+    }
+    return dbStore.createComment(userId, submissionId, text);
+  },
+
+  async getCommentsBySubmission(submissionId: string) {
+    if (postgresAvailable) {
+      return prismaStore.getCommentsBySubmission(submissionId);
+    }
+    return dbStore.getCommentsBySubmission(submissionId);
+  },
+
+  async deleteComment(id: string, userId: string, isAdmin: boolean = false) {
+    if (postgresAvailable) {
+      return prismaStore.deleteComment(id, userId, isAdmin);
+    }
+    return dbStore.deleteComment(id, userId, isAdmin);
+  },
+
   // ─── Legacy compatibility ─────────────────────────────────────
 
   getData() {

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { Language, translations } from '../../i18n';
-import { setMockUserId, currentMockUserId } from '../../lib/api';
-import { Flame, Globe, UserCheck, ShieldAlert, Sparkles, LogOut } from 'lucide-react';
+import { setMockUserId, currentMockUserId, apiRequest } from '../../lib/api';
+import { Flame, Globe, UserCheck, ShieldAlert, Sparkles, LogOut, Crown } from 'lucide-react';
 import { telegram } from '../../lib/telegram';
 
 interface HeaderProps {
@@ -24,6 +24,16 @@ export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, on
     onRefreshUser();
   };
 
+  const handleMakeSuperAdmin = async () => {
+    telegram.haptic('click');
+    const res = await apiRequest('/admin/make-super-admin', { method: 'POST' });
+    if (res.success) {
+      telegram.haptic('success');
+      setShowDevMenu(false);
+      onRefreshUser();
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 w-full bg-[#00FF00] text-[#000000] border-b-4 border-[#000000] shadow-[0_4px_0_#000000]">
       <div className="max-w-lg mx-auto px-4 pt-4 sm:pt-[max(1rem,env(safe-area-inset-top))] pb-3 flex items-center justify-between">
@@ -32,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, on
         <img
           src="/logo.png"
           alt="QANI?"
-          className="h-9 w-auto border-2 border-[#000000] shadow-[2px_2px_0_#000000] bg-[#000000]"
+          className="h-12 w-auto object-contain"
         />
         <div className="hidden sm:block">
           <div className="flex items-center space-x-1.5">
@@ -110,6 +120,17 @@ export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, on
               </button>
 
               <div className="border-t-2 border-[#000000] my-1"></div>
+
+              {/* Make Me Super Admin (only if not already) */}
+              {user?.role !== 'SUPER_ADMIN' && (
+                <button
+                  onClick={handleMakeSuperAdmin}
+                  className="w-full text-left px-3 py-2 flex items-center space-x-2 hover:bg-[#000000] hover:text-[#00FF00] font-bold text-[#000000]"
+                >
+                  <Crown className="w-3.5 h-3.5 text-[#FF4D00]" />
+                  <span>Make Me Super Admin</span>
+                </button>
+              )}
 
               <button
                 onClick={() => {

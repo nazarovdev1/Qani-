@@ -125,6 +125,7 @@ export default function App() {
             {activeTab === 'feed' && (
               <VideoFeed
                 lang={lang}
+                currentUser={user}
                 onNavigateToChallenge={() => setActiveTab('today')}
               />
             )}

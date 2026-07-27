@@ -71,6 +71,16 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({ user, lang }) => {
             <span>Telegram‘da Ulashish</span>
           </button>
 
+          {/* Bot Link */}
+          <a
+            href="https://t.me/qaniisbotlabot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full py-2 bg-[#00FF00] text-[#000000] border-2 border-[#000000] font-black text-xs uppercase tracking-wider shadow-[2px_2px_0px_#000000] text-center hover:bg-[#000000] hover:text-[#00FF00] transition-colors"
+          >
+            @qaniisbotlabot — Botga O‘tish
+          </a>
+
           <div className="flex items-center space-x-2 bg-[#F0F0F0] border-2 border-[#000000] p-2 pl-3 shadow-[2px_2px_0px_#000000]">
             <span className="text-[11px] font-mono font-bold text-[#000000] truncate flex-1">
               {referralLink}
@@ -87,23 +97,23 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({ user, lang }) => {
       </div>
 
       {/* Inviter Stats Metrics */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-[#FFFFFF] border-4 border-[#000000] p-3 text-center space-y-1 shadow-[4px_4px_0px_#000000]">
-          <Eye className="w-5 h-5 text-[#000000] mx-auto" />
-          <div className="text-2xl font-black text-[#000000]">{stats?.linkOpens || 0}</div>
-          <div className="text-[10px] font-black uppercase text-[#000000]">Link ochganlar</div>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="bg-[#FFFFFF] border-4 border-[#000000] p-2.5 text-center space-y-1 shadow-[4px_4px_0px_#000000] min-h-[100px] flex flex-col items-center justify-center">
+          <Eye className="w-5 h-5 text-[#000000] mx-auto flex-shrink-0" />
+          <div className="text-xl font-black text-[#000000]">{stats?.linkOpens || 0}</div>
+          <div className="text-[9px] font-black uppercase text-[#000000] leading-tight">Link Ochganlar</div>
         </div>
 
-        <div className="bg-[#FFFFFF] border-4 border-[#000000] p-3 text-center space-y-1 shadow-[4px_4px_0px_#000000]">
-          <Users className="w-5 h-5 text-[#000000] mx-auto" />
-          <div className="text-2xl font-black text-[#000000]">{stats?.signups || 0}</div>
-          <div className="text-[10px] font-black uppercase text-[#000000]">Ro‘yxatdan o‘tgan</div>
+        <div className="bg-[#FFFFFF] border-4 border-[#000000] p-2.5 text-center space-y-1 shadow-[4px_4px_0px_#000000] min-h-[100px] flex flex-col items-center justify-center">
+          <Users className="w-5 h-5 text-[#000000] mx-auto flex-shrink-0" />
+          <div className="text-xl font-black text-[#000000]">{stats?.signups || 0}</div>
+          <div className="text-[9px] font-black uppercase text-[#000000] leading-tight">Ro‘yxatdan O‘tgan</div>
         </div>
 
-        <div className="bg-[#00FF00] border-4 border-[#000000] p-3 text-center space-y-1 shadow-[4px_4px_0px_#000000]">
-          <UserCheck className="w-5 h-5 text-[#000000] mx-auto" />
-          <div className="text-2xl font-black text-[#000000]">{stats?.activated || 0}</div>
-          <div className="text-[10px] font-black uppercase text-[#000000]">Aktiv Foydalanuvchilar</div>
+        <div className="bg-[#00FF00] border-4 border-[#000000] p-2.5 text-center space-y-1 shadow-[4px_4px_0px_#000000] min-h-[100px] flex flex-col items-center justify-center">
+          <UserCheck className="w-5 h-5 text-[#000000] mx-auto flex-shrink-0" />
+          <div className="text-xl font-black text-[#000000]">{stats?.activated || 0}</div>
+          <div className="text-[9px] font-black uppercase text-[#000000] leading-tight">Aktiv Foydalanuvchilar</div>
         </div>
       </div>
 
