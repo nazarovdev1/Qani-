@@ -102,6 +102,9 @@ export async function createApp() {
     console.warn('[App] Redis test failed:', err);
   }
 
+  // Trust proxy for Vercel (rate limiter needs this)
+  app.set('trust proxy', 1);
+
   // JSON Body Parser
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
