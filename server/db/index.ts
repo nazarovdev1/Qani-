@@ -221,11 +221,33 @@ export const db = {
     if (postgresAvailable) {
       return prismaStore.getFlaggedSubmissions();
     }
-    // Fallback: manual filter from JSON store
+    // Fallback: manual filter from JSON store with user info
     const data = dbStore.getData();
-    return data.submissions.filter(
-      (s) => s.reportCount > 0 || s.moderationStatus === 'UNDER_REVIEW'
-    );
+    return data.submissions
+      .filter(
+        (s: any) => s.reportCount > 0 || s.moderationStatus === 'UNDER_REVIEW'
+      )
+      .map((s: any) => {
+        const user = dbStore.findUserById(s.userId);
+        const reports = data.reports
+          .filter((r: any) => r.submissionId === s.id)
+          .map((r: any) => {
+            const reporter = dbStore.findUserById(r.reporterId);
+            return {
+              id: r.id,
+              reporterId: r.reporterId,
+              reason: r.reason,
+              details: r.details,
+              createdAt: r.createdAt,
+              reporter: reporter ? { firstName: reporter.firstName } : undefined,
+            };
+          });
+        return {
+          ...s,
+          userName: user ? `${user.firstName} ${user.lastName || ''}`.trim() : 'Foydalanuvchi',
+          reports,
+        };
+      });
   },
 
   async updateSubmissionModeration(submissionId: string, status: any) {

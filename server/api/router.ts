@@ -687,9 +687,11 @@ apiRouter.post('/submissions/:id/comments', async (req: AuthenticatedRequest, re
       return sendError(res, 400, 'INVALID_INPUT', 'Komment 500 ta belgidan oshmasligi kerak.');
     }
 
-    const user = req.user!;
-    const comment = await db.createComment(user.id, req.params.id, text.trim());
-    res.json({ success: true, data: { comment } });
+    const currentUser = req.user!;
+    const comment = await db.createComment(currentUser.id, req.params.id, text.trim());
+    // Attach user info so frontend gets CommentWithUser
+    const commentWithUser = { ...comment, user: currentUser };
+    res.json({ success: true, data: { comment: commentWithUser } });
   } catch (err) {
     console.error('/submissions/:id/comments POST error:', err);
     sendError(res, 500, 'INTERNAL_ERROR', 'Komment qo‘shishda xatolik.');

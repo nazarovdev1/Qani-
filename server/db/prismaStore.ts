@@ -739,7 +739,7 @@ class PrismaStore {
   // ─── Admin Helpers ───────────────────────────────────────────
 
   async getFlaggedSubmissions() {
-    return prisma.submission.findMany({
+    const submissions = await prisma.submission.findMany({
       where: {
         OR: [
           { reportCount: { gt: 0 } },
@@ -752,6 +752,19 @@ class PrismaStore {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return submissions.map((s: any) => ({
+      ...mapPrismaSubmission(s),
+      userName: `${s.user.firstName} ${s.user.lastName || ''}`.trim(),
+      reports: s.reports.map((r: any) => ({
+        id: r.id,
+        reporterId: r.reporterId,
+        reason: r.reason,
+        details: r.details,
+        createdAt: r.createdAt.toISOString(),
+        reporter: r.reporter ? { firstName: r.reporter.firstName } : undefined,
+      })),
+    }));
   }
 
   async updateSubmissionModeration(submissionId: string, status: ModerationStatus): Promise<void> {
