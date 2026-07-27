@@ -1,10 +1,16 @@
 import fs from 'fs';
 import path from 'path';
 
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
+const UPLOAD_DIR = process.env.VERCEL
+  ? path.join('/tmp', 'uploads')
+  : path.join(process.cwd(), 'public', 'uploads');
 
-if (!fs.existsSync(UPLOAD_DIR)) {
-  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+} catch {
+  // Vercel /tmp may not exist yet; ignore
 }
 
 export interface UploadResult {

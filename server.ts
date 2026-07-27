@@ -66,9 +66,9 @@ function startOnAvailablePort(app: express.Express, preferred: number) {
   });
 }
 
-// ─── Main Server ──────────────────────────────────────────────
+// ─── Create Express App (for both standalone & serverless) ──
 
-async function startServer() {
+export async function createApp() {
   const app = express();
 
   // Initialize database (PostgreSQL or JSON fallback)
@@ -108,9 +108,11 @@ async function startServer() {
   app.use('/api/auth', authLimiter);
   app.use('/api', generalLimiter);
 
-  // Static uploads directory for media files
-  const publicUploads = path.join(process.cwd(), 'public', 'uploads');
-  app.use('/uploads', express.static(publicUploads));
+  // Static uploads directory for media files (Vercel: use /tmp)
+  const uploadDir = process.env.VERCEL
+    ? path.join('/tmp', 'uploads')
+    : path.join(process.cwd(), 'public', 'uploads');
+  app.use('/uploads', express.static(uploadDir));
 
   // API Routes FIRST
   app.use('/api', apiRouter);
@@ -143,10 +145,25 @@ async function startServer() {
   // Global error handler (must be last)
   app.use(errorHandler);
 
+  return app;
+}
+
+// ─── Standalone Server (for local dev / Docker) ─────────────
+
+async function startServer() {
+  const app = await createApp();
   startOnAvailablePort(app, 3000);
 }
 
-startServer().catch(err => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
-});
+// ─── Serverless Export (Vercel) ─────────────────────────────
+
+export default createApp;
+
+// ─── Start if run directly (not imported) ─────────────────────
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  startServer().catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  });
+}
