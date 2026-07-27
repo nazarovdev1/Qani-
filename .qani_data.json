@@ -317,6 +317,20 @@
       "challengeId": "ch_today_01",
       "eventName": "FEED_VIEWED",
       "createdAt": "2026-07-27T11:36:11.256Z"
+    },
+    {
+      "id": "ae_1785155299940_q0b",
+      "userId": "user_001",
+      "challengeId": "ch_today_01",
+      "eventName": "FEED_VIEWED",
+      "createdAt": "2026-07-27T12:28:19.940Z"
+    },
+    {
+      "id": "ae_1785155299977_snu",
+      "userId": "user_001",
+      "challengeId": "ch_today_01",
+      "eventName": "FEED_VIEWED",
+      "createdAt": "2026-07-27T12:28:19.977Z"
     }
   ],
   "notifications": [],

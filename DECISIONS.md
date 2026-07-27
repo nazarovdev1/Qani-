@@ -34,5 +34,5 @@ This document records the architectural, technical, and product decisions made d
 * **Rationale**: Guarantees 100% device compatibility across low-end Android WebView devices and Telegram iOS/Android clients.
 
 ## 8. Referral Deep-Linking via Telegram `startapp`
-* **Decision**: Deep-links format: `https://t.me/qani_app_bot/app?startapp=ref_USERID_CHALLENGEID`.
+* **Decision**: Deep-links format: `https://t.me/qaniisbotlabot/app?startapp=ref_USERID_CHALLENGEID`.
 * **Rationale**: Standard Telegram WebApp parameter parsing (`Telegram.WebApp.initDataUnsafe.start_param`) extracts inviter ID and binds referrals upon account creation.

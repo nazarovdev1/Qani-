@@ -271,10 +271,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
                   </div>
                 )}
 
-                <div className="flex items-center space-x-2 pt-1">
+                <div className="grid grid-cols-2 gap-2 pt-1">
                   <button
                     onClick={() => handleModerationAction(sub.id, 'APPROVE')}
-                    className="flex-1 py-1.5 bg-[#00FF00] text-[#000000] border-2 border-[#000000] text-[11px] font-black uppercase flex items-center justify-center space-x-1 shadow-[2px_2px_0px_#000000]"
+                    className="py-2 px-2 bg-[#00FF00] text-[#000000] border-2 border-[#000000] text-[11px] font-black uppercase flex items-center justify-center space-x-1 shadow-[2px_2px_0px_#000000] hover:bg-[#FFFFFF] transition-colors"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     <span>Tasdiqlash</span>
@@ -282,7 +282,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
 
                   <button
                     onClick={() => handleModerationAction(sub.id, 'WARN_USER', 'Iltimos, qoidalarga rioya qiling. Keyingi safar ogohlantirishsiz o‘chiriladi.')}
-                    className="flex-1 py-1.5 bg-[#FFCC00] text-[#000000] border-2 border-[#000000] text-[11px] font-black uppercase flex items-center justify-center space-x-1 shadow-[2px_2px_0px_#000000]"
+                    className="py-2 px-2 bg-[#FFCC00] text-[#000000] border-2 border-[#000000] text-[11px] font-black uppercase flex items-center justify-center space-x-1 shadow-[2px_2px_0px_#000000] hover:bg-[#FFFFFF] transition-colors"
                     title="Foydalanuvchini ogohlantirish"
                   >
                     <AlertTriangle className="w-3.5 h-3.5" />
@@ -291,7 +291,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
 
                   <button
                     onClick={() => handleModerationAction(sub.id, 'REMOVE')}
-                    className="flex-1 py-1.5 bg-[#FF4D00] text-[#FFFFFF] border-2 border-[#000000] text-[11px] font-black uppercase flex items-center justify-center space-x-1 shadow-[2px_2px_0px_#000000]"
+                    className="py-2 px-2 bg-[#FF4D00] text-[#FFFFFF] border-2 border-[#000000] text-[11px] font-black uppercase flex items-center justify-center space-x-1 shadow-[2px_2px_0px_#000000] hover:bg-[#000000] transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>O‘chirish</span>
@@ -299,10 +299,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
 
                   <button
                     onClick={() => handleModerationAction(sub.id, 'BLOCK_USER')}
-                    className="py-1.5 px-3 bg-[#000000] text-[#FFFFFF] border-2 border-[#000000] text-[11px] font-black uppercase flex items-center justify-center shadow-[2px_2px_0px_#000000]"
+                    className="py-2 px-2 bg-[#000000] text-[#FFFFFF] border-2 border-[#000000] text-[11px] font-black uppercase flex items-center justify-center space-x-1 shadow-[2px_2px_0px_#000000] hover:bg-[#FF4D00] transition-colors"
                     title="Foydalanuvchini bloklash"
                   >
                     <Ban className="w-3.5 h-3.5 text-[#FF4D00]" />
+                    <span>Bloklash</span>
                   </button>
                 </div>
               </div>

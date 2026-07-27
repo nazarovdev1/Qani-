@@ -16,7 +16,7 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({ user, lang }) => {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const referralLink = `https://t.me/qani_app_bot/app?startapp=ref_${user.id}`;
+  const referralLink = `https://t.me/qaniisbotlabot/app?startapp=ref_${user.id}`;
   const shareText = `“Men bugungi QANI? topshirig‘ini bajardim. Sen ham qila olasanmi? Kamerada ko‘rsat!”`;
 
   useEffect(() => {

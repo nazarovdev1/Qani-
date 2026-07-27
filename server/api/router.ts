@@ -489,7 +489,7 @@ apiRouter.get('/referrals/stats', async (req: AuthenticatedRequest, res: Respons
       success: true,
       data: {
         referralCode: user.referralCode,
-        referralLink: `https://t.me/qani_app_bot/app?startapp=ref_${user.id}`,
+        referralLink: `https://t.me/qaniisbotlabot/app?startapp=ref_${user.id}`,
         stats
       }
     });

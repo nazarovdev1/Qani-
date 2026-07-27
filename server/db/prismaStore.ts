@@ -741,9 +741,18 @@ class PrismaStore {
   async getFlaggedSubmissions() {
     const submissions = await prisma.submission.findMany({
       where: {
-        OR: [
-          { reportCount: { gt: 0 } },
-          { moderationStatus: 'UNDER_REVIEW' },
+        AND: [
+          {
+            OR: [
+              { reportCount: { gt: 0 } },
+              { moderationStatus: 'UNDER_REVIEW' },
+            ],
+          },
+          {
+            moderationStatus: {
+              notIn: ['APPROVED', 'REMOVED', 'REJECTED'],
+            },
+          },
         ],
       },
       include: {
@@ -770,7 +779,10 @@ class PrismaStore {
   async updateSubmissionModeration(submissionId: string, status: ModerationStatus): Promise<void> {
     await prisma.submission.update({
       where: { id: submissionId },
-      data: { moderationStatus: status },
+      data: {
+        moderationStatus: status,
+        reportCount: 0,
+      },
     });
   }
 

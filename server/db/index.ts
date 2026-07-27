@@ -225,7 +225,11 @@ export const db = {
     const data = dbStore.getData();
     return data.submissions
       .filter(
-        (s: any) => s.reportCount > 0 || s.moderationStatus === 'UNDER_REVIEW'
+        (s: any) =>
+          (s.reportCount > 0 || s.moderationStatus === 'UNDER_REVIEW') &&
+          s.moderationStatus !== 'APPROVED' &&
+          s.moderationStatus !== 'REMOVED' &&
+          s.moderationStatus !== 'REJECTED'
       )
       .map((s: any) => {
         const user = dbStore.findUserById(s.userId);
@@ -257,6 +261,7 @@ export const db = {
     const sub = dbStore.getData().submissions.find((s) => s.id === submissionId);
     if (sub) {
       sub.moderationStatus = status;
+      sub.reportCount = 0;
       sub.updatedAt = new Date().toISOString();
       dbStore.saveData();
     }
