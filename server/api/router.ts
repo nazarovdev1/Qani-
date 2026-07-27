@@ -254,10 +254,12 @@ apiRouter.post('/submissions', async (req: AuthenticatedRequest, res: Response) 
     const user = req.user!;
     const { challengeId, videoUrl, durationSec, groupId } = result.data;
 
-    // Check existing submission for today
-    const existing = await db.getUserSubmissionForChallenge(user.id, challengeId);
-    if (existing && existing.processingStatus === 'READY') {
-      return sendError(res, 400, 'CHALLENGE_ALREADY_COMPLETED', 'Bugungi topshiriqni allaqachon bajargansiz.');
+    // Check existing submission for today (skip for SUPER_ADMIN)
+    if (user.role !== 'SUPER_ADMIN') {
+      const existing = await db.getUserSubmissionForChallenge(user.id, challengeId);
+      if (existing && existing.processingStatus === 'READY') {
+        return sendError(res, 400, 'CHALLENGE_ALREADY_COMPLETED', 'Bugungi topshiriqni allaqachon bajargansiz.');
+      }
     }
 
     const submission = await db.createSubmission({
@@ -267,7 +269,8 @@ apiRouter.post('/submissions', async (req: AuthenticatedRequest, res: Response) 
       videoUrl,
       durationSec: durationSec || 10,
       processingStatus: 'UPLOADING',
-      moderationStatus: 'APPROVED'
+      moderationStatus: 'APPROVED',
+      userRole: user.role,
     });
 
     // Enqueue background processing job
@@ -325,8 +328,8 @@ apiRouter.get('/feed/today', async (req: AuthenticatedRequest, res: Response) =>
 
     const userSub = await db.getUserSubmissionForChallenge(user.id, activeChallenge.id);
 
-    // Check feed locking rule: User must submit video before unlocked!
-    const isLocked = !userSub || userSub.processingStatus !== 'READY';
+    // Check feed locking rule: User must submit video before unlocked! (skip for SUPER_ADMIN)
+    const isLocked = user.role !== 'SUPER_ADMIN' && (!userSub || userSub.processingStatus !== 'READY');
 
     const feed = await db.getFeedForChallenge(activeChallenge.id, user.id);
 

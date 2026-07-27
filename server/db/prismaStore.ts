@@ -335,12 +335,15 @@ class PrismaStore {
     return submission ? mapPrismaSubmission(submission) : undefined;
   }
 
-  async createSubmission(data: Omit<Submission, 'id' | 'createdAt' | 'updatedAt' | 'reportCount'>): Promise<Submission> {
+  async createSubmission(data: Omit<Submission, 'id' | 'createdAt' | 'updatedAt' | 'reportCount'> & { userRole?: string }): Promise<Submission> {
     return prisma.$transaction(async (tx) => {
-      // Delete any existing submission for this user+challenge
-      await tx.submission.deleteMany({
-        where: { userId: data.userId, challengeId: data.challengeId },
-      });
+      // SUPER_ADMIN can post unlimited videos — don't delete existing submissions
+      if (data.userRole !== 'SUPER_ADMIN') {
+        // Delete any existing submission for this user+challenge
+        await tx.submission.deleteMany({
+          where: { userId: data.userId, challengeId: data.challengeId },
+        });
+      }
 
       const submission = await tx.submission.create({
         data: {

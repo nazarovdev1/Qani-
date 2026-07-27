@@ -489,8 +489,10 @@ class StoreAdapter {
       updatedAt: nowISO
     };
 
-    // Remove existing if any
-    this.data.submissions = this.data.submissions.filter(s => !(s.userId === sub.userId && s.challengeId === sub.challengeId));
+    // Remove existing if any (skip for SUPER_ADMIN)
+    if ((sub as any).userRole !== 'SUPER_ADMIN') {
+      this.data.submissions = this.data.submissions.filter(s => !(s.userId === sub.userId && s.challengeId === sub.challengeId));
+    }
     this.data.submissions.push(newSub);
 
     // Update streak activity for user

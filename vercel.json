@@ -6,7 +6,7 @@
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/uploads/(.*)", "destination": "/api/index" },
     { "source": "/health", "destination": "/api/index" },
-    { "source": "/(.*)", "destination": "/dist/index.html" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {

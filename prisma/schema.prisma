@@ -145,7 +145,6 @@ model Submission {
   reports          Report[]
   comments         Comment[]
 
-  @@unique([userId, challengeId])
 }
 
 model Comment {
