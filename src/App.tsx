@@ -75,7 +75,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-[#000000] font-sans antialiased selection:bg-[#00FF00] selection:text-[#000000]">
+    <div className="min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-[#FFFFFF] text-[#000000] font-sans antialiased selection:bg-[#00FF00] selection:text-[#000000]">
       {/* Top Header */}
       <Header
         user={user}
@@ -85,7 +85,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="px-4 py-6 max-w-lg mx-auto pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <main className="w-full px-4 py-6 max-w-lg mx-auto pb-[calc(6rem+env(safe-area-inset-bottom))] overflow-x-hidden">
         {loading ? (
           <div className="space-y-4 py-8">
             <div className="h-48 bg-[#F0F0F0] border-4 border-[#000000] shadow-[6px_6px_0px_#000000] animate-pulse" />

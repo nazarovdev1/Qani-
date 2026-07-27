@@ -65,7 +65,7 @@ export const TodayChallengeCard: React.FC<TodayChallengeCardProps> = ({
 
       {/* Challenge Content */}
       <div className="space-y-4">
-        <h2 className="text-3xl sm:text-4xl font-black text-[#000000] tracking-tighter uppercase leading-[0.95]">
+        <h2 className="text-3xl sm:text-4xl font-black text-[#000000] tracking-tighter uppercase leading-[0.95] break-words">
           {challenge.title}
         </h2>
 
