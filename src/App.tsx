@@ -145,6 +145,7 @@ export default function App() {
                     challenge={activeChallenge}
                     submission={userSubmission}
                     lang={lang}
+                    userRole={user?.role}
                     onStartClick={() => setShowCamera(true)}
                     onViewFeedClick={() => setActiveTab('feed')}
                   />

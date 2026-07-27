@@ -8,6 +8,7 @@ interface TodayChallengeCardProps {
   challenge: Challenge;
   submission?: Submission;
   lang: Language;
+  userRole?: string;
   onStartClick: () => void;
   onViewFeedClick: () => void;
 }
@@ -16,6 +17,7 @@ export const TodayChallengeCard: React.FC<TodayChallengeCardProps> = ({
   challenge,
   submission,
   lang,
+  userRole,
   onStartClick,
   onViewFeedClick
 }) => {
@@ -113,6 +115,20 @@ export const TodayChallengeCard: React.FC<TodayChallengeCardProps> = ({
           >
             <span>Do‘stlar videosini ko‘rish</span>
           </button>
+
+          {/* SUPER_ADMIN: always show upload button */}
+          {userRole === 'SUPER_ADMIN' && (
+            <button
+              onClick={() => {
+                telegram.haptic('click');
+                onStartClick();
+              }}
+              className="w-full py-5 bg-[#000000] text-[#00FF00] hover:bg-[#00FF00] hover:text-[#000000] border-4 border-[#000000] font-black text-base uppercase tracking-tight shadow-[6px_6px_0px_#000000] flex items-center justify-center space-x-3 transition-colors active:translate-x-1 active:translate-y-1 active:shadow-none"
+            >
+              <Video className="w-6 h-6" />
+              <span>Yana Video Yuklash</span>
+            </button>
+          )}
         </div>
       ) : isProcessing ? (
         <div className="bg-[#FF4D00] text-[#FFFFFF] border-3 border-[#000000] p-4 text-center space-y-2 shadow-[4px_4px_0px_#000000]">
