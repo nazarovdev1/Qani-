@@ -98,9 +98,49 @@ export async function telegramAuthMiddleware(
   }
 
   if (!botToken) {
-    // Fallback: auto-login default mock user
-    req.user = dbStore.findUserById('user_001');
-    return next();
+    // Bot token o'rnatilmagan bo'lsa, initData'ni trust qilamiz (dev mode)
+    if (initDataHeader) {
+      try {
+        const urlParams = new URLSearchParams(initDataHeader);
+        const userDataStr = urlParams.get('user');
+        if (userDataStr) {
+          const tgUser = JSON.parse(userDataStr);
+          const tgIdStr = String(tgUser.id);
+          let user = await db.findUserByTelegramId(tgIdStr);
+          if (!user) {
+            user = await db.createUser({
+              telegramId: tgIdStr,
+              username: tgUser.username,
+              firstName: tgUser.first_name || 'Foydalanuvchi',
+              lastName: tgUser.last_name,
+              photoUrl: tgUser.photo_url,
+              ageConfirmed: false,
+              onboardingDone: false,
+            });
+          }
+          if (user.isBlocked) {
+            res.status(403).json({
+              success: false,
+              error: { code: 'USER_BLOCKED', message: 'Sizning hisobingiz bloklangan.' }
+            });
+            return;
+          }
+          req.user = user;
+          return next();
+        }
+      } catch (e) {
+        console.error('Fallback auth parse error:', e);
+      }
+    }
+    // Agar initData ham bo'lmasa, 401 qaytaramiz
+    res.status(401).json({
+      success: false,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Telegram initData topilmadi. Iltimos Telegram Mini App orqali kiring.'
+      }
+    });
+    return;
   }
 
   const result = verifyTelegramInitData(initDataHeader, botToken);

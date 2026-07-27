@@ -1,6 +1,7 @@
 import { telegram } from './telegram';
 
-export let currentMockUserId: string = localStorage.getItem('qani_mock_user_id') || 'user_001';
+// Mock user ID — faqat developer menyu orqali tanlanganda ishlatiladi
+export let currentMockUserId: string = localStorage.getItem('qani_mock_user_id') || '';
 
 export function setMockUserId(id: string) {
   currentMockUserId = id;
@@ -18,8 +19,8 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     headers['x-telegram-init-data'] = initData;
   }
 
-  // Pass mock user header for development testing
-  if (currentMockUserId) {
+  // Mock user header — faqat developer menyu orqali tanlanganda
+  if (currentMockUserId && !initData) {
     headers['x-mock-user-id'] = currentMockUserId;
   }
 

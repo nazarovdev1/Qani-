@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User } from '../../types';
 import { Language, translations } from '../../i18n';
 import { setMockUserId, currentMockUserId } from '../../lib/api';
-import { Flame, Globe, UserCheck, ShieldAlert, Sparkles } from 'lucide-react';
+import { Flame, Globe, UserCheck, ShieldAlert, Sparkles, LogOut } from 'lucide-react';
 import { telegram } from '../../lib/telegram';
 
 interface HeaderProps {
@@ -106,6 +106,21 @@ export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, on
                   <ShieldAlert className="w-3.5 h-3.5" />
                   <span>Azizbek (Super Admin)</span>
                 </div>
+              </button>
+
+              <div className="border-t-2 border-[#000000] my-1"></div>
+
+              <button
+                onClick={() => {
+                  localStorage.removeItem('qani_mock_user_id');
+                  setMockUserId('');
+                  setShowDevMenu(false);
+                  onRefreshUser();
+                }}
+                className="w-full text-left px-3 py-2 flex items-center space-x-2 hover:bg-[#000000] hover:text-[#FFFFFF] font-bold text-[#000000]"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Telegram foydalanuvchisiga qaytish</span>
               </button>
             </div>
           )}
