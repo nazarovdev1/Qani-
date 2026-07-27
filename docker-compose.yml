@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  # Web Application & Express API
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DATABASE_URL=postgresql://qani_user:qani_pass@postgres:5432/qani_db?schema=public
+      - REDIS_URL=redis://redis:6379
+      - S3_ENDPOINT=http://minio:9000
+      - S3_BUCKET=qani-videos
+      - TELEGRAM_BOT_TOKEN=777888999:AAFF_QANI_DEMO_BOT_TOKEN
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    restart: unless-stopped
+
+  # Background Queue Worker (Video Processing)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: npm run start
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://qani_user:qani_pass@postgres:5432/qani_db?schema=public
+      - REDIS_URL=redis://redis:6379
+      - S3_ENDPOINT=http://minio:9000
+      - S3_BUCKET=qani-videos
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  # Database: PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: qani_postgres
+    environment:
+      POSTGRES_USER: qani_user
+      POSTGRES_PASSWORD: qani_pass
+      POSTGRES_DB: qani_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Queue & Cache: Redis
+  redis:
+    image: redis:7-alpine
+    container_name: qani_redis
+    ports:
+      - "6379:6379"
+
+  # S3 Object Storage: MinIO
+  minio:
+    image: minio/minio:RELEASE.2023-09-04T19-57-37Z
+    container_name: qani_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadminpassword
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+volumes:
+  postgres_data:
+  minio_data:

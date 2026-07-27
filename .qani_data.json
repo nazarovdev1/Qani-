@@ -1,0 +1,310 @@
+{
+  "users": [
+    {
+      "id": "user_admin_001",
+      "telegramId": "999999999",
+      "username": "qani_admin",
+      "firstName": "Azizbek",
+      "lastName": "Qodirov",
+      "photoUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "region": "Toshkent shahri",
+      "ageConfirmed": true,
+      "onboardingDone": true,
+      "role": "SUPER_ADMIN",
+      "isBlocked": false,
+      "referralCode": "REF_ADMIN",
+      "currentStreak": 12,
+      "longestStreak": 25,
+      "lastActiveDate": "2026-07-27",
+      "createdAt": "2026-06-27T04:35:11.169Z",
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "user_001",
+      "telegramId": "100000001",
+      "username": "jasur_vines",
+      "firstName": "Jasur",
+      "lastName": "Mirzayev",
+      "photoUrl": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150",
+      "region": "Toshkent shahri",
+      "ageConfirmed": true,
+      "onboardingDone": true,
+      "role": "USER",
+      "isBlocked": false,
+      "referralCode": "REF_JASUR",
+      "currentStreak": 5,
+      "longestStreak": 14,
+      "lastActiveDate": "2026-07-27",
+      "createdAt": "2026-07-12T04:35:11.169Z",
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "user_002",
+      "telegramId": "100000002",
+      "username": "madina_tech",
+      "firstName": "Madina",
+      "lastName": "Aliyeva",
+      "photoUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
+      "region": "Samarqand",
+      "ageConfirmed": true,
+      "onboardingDone": true,
+      "role": "USER",
+      "isBlocked": false,
+      "referralCode": "REF_MADINA",
+      "currentStreak": 3,
+      "longestStreak": 8,
+      "lastActiveDate": "2026-07-27",
+      "createdAt": "2026-07-17T04:35:11.169Z",
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "user_003",
+      "telegramId": "100000003",
+      "username": "sardor_fit",
+      "firstName": "Sardor",
+      "lastName": "Kamilov",
+      "photoUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150",
+      "region": "Fargʻona",
+      "ageConfirmed": true,
+      "onboardingDone": true,
+      "role": "USER",
+      "isBlocked": false,
+      "referralCode": "REF_SARDOR",
+      "currentStreak": 7,
+      "longestStreak": 19,
+      "lastActiveDate": "2026-07-27",
+      "createdAt": "2026-07-07T04:35:11.169Z",
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    }
+  ],
+  "userSettings": [
+    {
+      "id": "s_admin",
+      "userId": "user_admin_001",
+      "language": "uz",
+      "theme": "system",
+      "notificationsEnabled": true,
+      "autoplayVideos": true,
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "s_u1",
+      "userId": "user_001",
+      "language": "uz",
+      "theme": "system",
+      "notificationsEnabled": true,
+      "autoplayVideos": true,
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "s_u2",
+      "userId": "user_002",
+      "language": "uz",
+      "theme": "system",
+      "notificationsEnabled": true,
+      "autoplayVideos": true,
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "s_u3",
+      "userId": "user_003",
+      "language": "uz",
+      "theme": "system",
+      "notificationsEnabled": true,
+      "autoplayVideos": true,
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    }
+  ],
+  "challenges": [
+    {
+      "id": "ch_tomorrow_02",
+      "title": "Eski Oʻzbek Film Saxnasi",
+      "description": "Sevimli oʻzbek filmlaringizdan biror mashhur frazani kameraga emotsiya bilan aytib ber.",
+      "instruction": "“Shum bola”, “Maysaraning ishi” yoki “Mahallada duv-duv gap” kabi filmlardan 10 soniyalik rol o‘yna!",
+      "example": "“E, xolamning uyi qayoqda dedi-ya...”",
+      "startTime": "2026-07-28T04:35:11.169Z",
+      "endTime": "2026-07-29T04:35:11.169Z",
+      "minDurationSec": 3,
+      "maxDurationSec": 15,
+      "status": "SCHEDULED",
+      "language": "uz",
+      "moderationLevel": "STANDARD",
+      "createdAt": "2026-07-27T04:35:11.169Z",
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "ch_today_01",
+      "title": "10 Million so‘mlik Mahsulot!",
+      "description": "Uyda turgan oddiy buyumni 10 soniyada 10 million so‘mlik premium mahsulotdek reklama qil.",
+      "instruction": "Kamerani yoq, istalgan oddiy buyumni (chashka, ruchka, kalit) olib, eng qimmat VIP reklama ovozida taqdim et!",
+      "example": "“Bu oddiy paypoq emas, bu nano-ipdan to‘qilgan qirollik tajribasi...”",
+      "startTime": "2026-07-27T00:35:11.169Z",
+      "endTime": "2026-07-28T00:35:11.169Z",
+      "minDurationSec": 3,
+      "maxDurationSec": 15,
+      "status": "ACTIVE",
+      "language": "uz",
+      "sponsorName": "QANI? Community",
+      "moderationLevel": "STANDARD",
+      "createdAt": "2026-07-26T23:35:11.169Z",
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    }
+  ],
+  "submissions": [
+    {
+      "id": "sub_demo_01",
+      "userId": "user_001",
+      "challengeId": "ch_today_01",
+      "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      "thumbnailUrl": "https://images.unsplash.com/photo-1585336261026-870a782ae1b0?w=600",
+      "durationSec": 10,
+      "processingStatus": "READY",
+      "moderationStatus": "APPROVED",
+      "reportCount": 0,
+      "createdAt": "2026-07-27T02:35:11.169Z",
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "sub_demo_02",
+      "userId": "user_002",
+      "challengeId": "ch_today_01",
+      "videoUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+      "thumbnailUrl": "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600",
+      "durationSec": 12,
+      "processingStatus": "READY",
+      "moderationStatus": "APPROVED",
+      "reportCount": 0,
+      "createdAt": "2026-07-27T03:35:11.169Z",
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    }
+  ],
+  "mediaAssets": [],
+  "reactions": [
+    {
+      "id": "react_1",
+      "userId": "user_002",
+      "submissionId": "sub_demo_01",
+      "emoji": "🔥",
+      "createdAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "react_2",
+      "userId": "user_003",
+      "submissionId": "sub_demo_01",
+      "emoji": "😂",
+      "createdAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "react_3",
+      "userId": "user_001",
+      "submissionId": "sub_demo_02",
+      "emoji": "👏",
+      "createdAt": "2026-07-27T04:35:11.169Z"
+    }
+  ],
+  "referrals": [
+    {
+      "id": "ref_1",
+      "inviterId": "user_001",
+      "invitedId": "user_002",
+      "challengeId": "ch_today_01",
+      "isActivated": true,
+      "createdAt": "2026-07-27T04:35:11.169Z"
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_001",
+      "name": "Toshkent Kreativchilari 🚀",
+      "description": "Har kuni video topshiriqlarni birgalikda bajaradigan doʻstlar klubi",
+      "creatorId": "user_001",
+      "inviteCode": "toshkent-creatives",
+      "maxMembers": 50,
+      "createdAt": "2026-07-27T04:35:11.169Z",
+      "updatedAt": "2026-07-27T04:35:11.169Z"
+    }
+  ],
+  "groupMembers": [
+    {
+      "id": "gm_1",
+      "groupId": "group_001",
+      "userId": "user_001",
+      "joinedAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "gm_2",
+      "groupId": "group_001",
+      "userId": "user_002",
+      "joinedAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "gm_3",
+      "groupId": "group_001",
+      "userId": "user_admin_001",
+      "joinedAt": "2026-07-27T04:35:11.169Z"
+    }
+  ],
+  "reports": [],
+  "moderationActions": [],
+  "dailyActivities": [
+    {
+      "id": "da_1",
+      "userId": "user_001",
+      "date": "2026-07-27",
+      "completed": true,
+      "createdAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "da_2",
+      "userId": "user_002",
+      "date": "2026-07-27",
+      "completed": true,
+      "createdAt": "2026-07-27T04:35:11.169Z"
+    }
+  ],
+  "analyticsEvents": [
+    {
+      "id": "ae_1",
+      "userId": "user_001",
+      "eventName": "APP_OPENED",
+      "createdAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "ae_2",
+      "userId": "user_001",
+      "eventName": "SUBMISSION_READY",
+      "challengeId": "ch_today_01",
+      "createdAt": "2026-07-27T04:35:11.169Z"
+    },
+    {
+      "id": "ae_1785127295507_sqm",
+      "userId": "user_001",
+      "challengeId": "ch_today_01",
+      "eventName": "FEED_VIEWED",
+      "createdAt": "2026-07-27T04:41:35.507Z"
+    },
+    {
+      "id": "ae_1785127295510_glb",
+      "userId": "user_001",
+      "challengeId": "ch_today_01",
+      "eventName": "FEED_VIEWED",
+      "createdAt": "2026-07-27T04:41:35.510Z"
+    },
+    {
+      "id": "ae_1785127438282_wgc",
+      "userId": "user_admin_001",
+      "challengeId": "ch_today_01",
+      "eventName": "FEED_VIEWED",
+      "createdAt": "2026-07-27T04:43:58.282Z"
+    },
+    {
+      "id": "ae_1785127438286_ipy",
+      "userId": "user_admin_001",
+      "challengeId": "ch_today_01",
+      "eventName": "FEED_VIEWED",
+      "createdAt": "2026-07-27T04:43:58.286Z"
+    }
+  ],
+  "notifications": [],
+  "auditLogs": []
+}

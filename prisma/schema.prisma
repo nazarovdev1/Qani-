@@ -1,0 +1,277 @@
+// Prisma Schema for "QANI?" Telegram Mini App
+// Database: PostgreSQL
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ChallengeStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+enum ProcessingStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+  REJECTED
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REMOVED
+  UNDER_REVIEW
+}
+
+enum ReportReason {
+  OFFENSIVE_CONTENT
+  INAPPROPRIATE_CONTENT
+  DANGEROUS_ACTION
+  SPAM_OR_AD
+  PRIVACY_VIOLATION
+  OTHER
+}
+
+model User {
+  id               String          @id @default(uuid())
+  telegramId       BigInt          @unique
+  username         String?
+  firstName        String
+  lastName         String?
+  photoUrl         String?
+  region           String?         // e.g. "Toshkent shahri", "Samarqand"
+  ageConfirmed     Boolean         @default(false)
+  onboardingDone   Boolean         @default(false)
+  role             Role            @default(USER)
+  isBlocked        Boolean         @default(false)
+  referralCode     String          @unique @default(uuid())
+  currentStreak    Int             @default(0)
+  longestStreak    Int             @default(0)
+  lastActiveDate   DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  // Relations
+  settings         UserSettings?
+  submissions      Submission[]
+  reactions        Reaction[]
+  reports          Report[]
+  inviterReferral  Referral?       @relation("InvitedUser")
+  invitedReferrals Referral[]      @relation("InviterUser")
+  createdGroups    Group[]         @relation("GroupCreator")
+  groupMemberships GroupMember[]
+  moderations      ModerationAction[]
+  dailyActivities  DailyActivity[]
+  analyticsEvents  AnalyticsEvent[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+}
+
+model UserSettings {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  language            String   @default("uz") // uz, ru, en
+  theme               String   @default("system") // dark, light, system
+  notificationsEnabled Boolean  @default(true)
+  autoplayVideos      Boolean  @default(true)
+  updatedAt           DateTime @updatedAt
+}
+
+model Challenge {
+  id             String          @id @default(uuid())
+  title          String
+  description    String
+  instruction    String
+  example        String?
+  startTime      DateTime
+  endTime        DateTime
+  minDurationSec Int             @default(3)
+  maxDurationSec Int             @default(15)
+  status         ChallengeStatus @default(DRAFT)
+  language       String          @default("uz")
+  sponsorName    String?
+  sponsorLogoUrl String?
+  moderationLevel String         @default("STANDARD")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  // Relations
+  submissions    Submission[]
+  reports        Report[]
+  analytics      AnalyticsEvent[]
+}
+
+model Submission {
+  id               String           @id @default(uuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId      String
+  challenge        Challenge        @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  groupId          String?
+  group            Group?           @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  videoUrl         String?
+  thumbnailUrl     String?
+  durationSec      Float?
+  processingStatus ProcessingStatus @default(UPLOADING)
+  moderationStatus ModerationStatus @default(APPROVED)
+  reportCount      Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relations
+  mediaAssets      MediaAsset[]
+  reactions        Reaction[]
+  reports          Report[]
+
+  @@unique([userId, challengeId])
+}
+
+model MediaAsset {
+  id           String     @id @default(uuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  fileKey      String
+  fileType     String     // video/mp4, image/jpeg
+  fileSize     Int
+  mimeType     String
+  isOriginal   Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+}
+
+model Reaction {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  emoji        String     // 😂, 🔥, 👏, ❤️
+  createdAt    DateTime   @default(now())
+
+  @@unique([userId, submissionId])
+}
+
+model Referral {
+  id            String   @id @default(uuid())
+  inviterId     String
+  inviter       User     @relation("InviterUser", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitedId     String   @unique
+  invited       User     @relation("InvitedUser", fields: [invitedId], references: [id], onDelete: Cascade)
+  challengeId   String?
+  isActivated   Boolean  @default(false) // activated after first challenge completed
+  createdAt     DateTime @default(now())
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  creatorId   String
+  creator     User     @relation("GroupCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  inviteCode  String   @unique @default(uuid())
+  maxMembers  Int      @default(50)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members     GroupMember[]
+  submissions Submission[]
+}
+
+model GroupMember {
+  id        String   @id @default(uuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime @default(now())
+
+  @@unique([groupId, userId])
+}
+
+model Report {
+  id           String       @id @default(uuid())
+  reporterId   String
+  reporter     User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  submissionId String
+  submission   Submission   @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  challengeId  String?
+  challenge    Challenge?   @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+  reason       ReportReason
+  details      String?
+  createdAt    DateTime     @default(now())
+
+  @@unique([reporterId, submissionId])
+}
+
+model ModerationAction {
+  id         String   @id @default(uuid())
+  adminId    String
+  admin      User     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  targetType String   // SUBMISSION, USER, COMMENT
+  targetId   String
+  action     String   // APPROVE, REJECT, REMOVE, BLOCK_USER
+  reason     String?
+  createdAt  DateTime @default(now())
+}
+
+model DailyActivity {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        String   // YYYY-MM-DD in Asia/Tashkent
+  completed   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+model AnalyticsEvent {
+  id          String    @id @default(uuid())
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  challengeId String?
+  challenge   Challenge? @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+  eventName   String    // APP_OPENED, ONBOARDING_COMPLETED, RECORDING_STARTED, etc.
+  metadata    String?   // JSON payload
+  createdAt   DateTime  @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // CHALLENGE_START, STREAK_WARNING, FRIEND_COMPLETED
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}

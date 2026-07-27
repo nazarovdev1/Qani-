@@ -1,0 +1,6 @@
+{
+  "name": "QANI?",
+  "description": "Gap bilan emas, kamerada ko'rsat. Telegram Mini App video challenge platformasi.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
