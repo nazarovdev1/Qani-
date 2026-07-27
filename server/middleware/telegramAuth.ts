@@ -62,44 +62,37 @@ export async function telegramAuthMiddleware(
 ): Promise<void> {
   const initDataHeader = req.headers['x-telegram-init-data'] as string || req.query.initData as string;
   const mockUserIdHeader = req.headers['x-mock-user-id'] as string || req.query.mockUserId as string;
+  const telegramUserHeader = req.headers['x-telegram-user'] as string;
   const botToken = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
 
+  // Debug: log headers (remove in production once fixed)
+  if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+    console.log('[Auth] Headers:', {
+      hasInitData: !!initDataHeader,
+      initDataLength: initDataHeader?.length,
+      hasMockUser: !!mockUserIdHeader,
+      hasTelegramUser: !!telegramUserHeader,
+      path: req.path,
+      userAgent: req.headers['user-agent']?.substring(0, 50)
+    });
+  }
+
   // ─── 1. Development Mock Auth Mode ────────────────────────────
-  if (mockUserIdHeader || (!botToken && process.env.NODE_ENV !== 'production')) {
-    const targetUserId = mockUserIdHeader || 'user_001';
-
-    // In dev, always use JSON store for mock users (they're seeded there)
-    let user = dbStore.findUserById(targetUserId);
-
+  if (mockUserIdHeader) {
+    let user = dbStore.findUserById(mockUserIdHeader);
     if (!user) {
-      if (targetUserId === 'user_admin_001' || targetUserId === 'admin') {
-        user = dbStore.findUserById('user_admin_001');
-      } else {
-        user = dbStore.findUserById('user_001');
-      }
+      user = dbStore.findUserById('user_001');
     }
-
     if (user) {
       req.user = user;
       return next();
     }
   }
 
-  // ─── 2. Production Telegram initData Authentication ────────────
-  if (!initDataHeader) {
-    res.status(401).json({
-      success: false,
-      error: {
-        code: 'UNAUTHORIZED',
-        message: 'Telegram initData topilmadi. Iltimos Telegram Mini App orqali kiring.'
-      }
-    });
-    return;
-  }
-
-  if (!botToken) {
-    // Bot token o'rnatilmagan bo'lsa, initData'ni trust qilamiz (dev mode)
-    if (initDataHeader) {
+  // ─── 2. Telegram initData Authentication ────────────
+  if (initDataHeader) {
+    if (!botToken) {
+      // Bot token o'rnatilmagan — initData'ni trust qilamiz (dev/yangi bot)
       try {
         const urlParams = new URLSearchParams(initDataHeader);
         const userDataStr = urlParams.get('user');
@@ -131,78 +124,80 @@ export async function telegramAuthMiddleware(
       } catch (e) {
         console.error('Fallback auth parse error:', e);
       }
-    }
-    // Agar initData ham bo'lmasa, 401 qaytaramiz
-    res.status(401).json({
-      success: false,
-      error: {
-        code: 'UNAUTHORIZED',
-        message: 'Telegram initData topilmadi. Iltimos Telegram Mini App orqali kiring.'
+    } else {
+      // Bot token bor — HMAC verify qilamiz
+      const result = verifyTelegramInitData(initDataHeader, botToken);
+      if (result.isValid && result.user) {
+        const tgUser = result.user as {
+          id: number; first_name: string; last_name?: string;
+          username?: string; photo_url?: string;
+        };
+        const tgIdStr = String(tgUser.id);
+        let user = await db.findUserByTelegramId(tgIdStr);
+        if (!user) {
+          user = await db.createUser({
+            telegramId: tgIdStr, username: tgUser.username,
+            firstName: tgUser.first_name || 'Foydalanuvchi',
+            lastName: tgUser.last_name, photoUrl: tgUser.photo_url,
+            ageConfirmed: false, onboardingDone: false,
+          });
+          if (result.startParam && result.startParam.startsWith('ref_')) {
+            const parts = result.startParam.split('_');
+            if (parts[1]) await db.registerReferral(parts[1], user.id, parts[2]);
+          }
+        }
+        if (user.isBlocked) {
+          res.status(403).json({
+            success: false,
+            error: { code: 'USER_BLOCKED', message: 'Sizning hisobingiz bloklangan.' }
+          });
+          return;
+        }
+        req.user = user;
+        return next();
       }
-    });
-    return;
-  }
-
-  const result = verifyTelegramInitData(initDataHeader, botToken);
-  if (!result.isValid || !result.user) {
-    res.status(401).json({
-      success: false,
-      error: {
-        code: 'INVALID_INIT_DATA',
-        message: 'Telegram autentifikatsiyasi muvaffaqiyatsiz yakunlandi.'
-      }
-    });
-    return;
-  }
-
-  const tgUser = result.user as {
-    id: number;
-    first_name: string;
-    last_name?: string;
-    username?: string;
-    photo_url?: string;
-  };
-  const tgIdStr = String(tgUser.id);
-
-  // Find or create user using unified DB layer
-  let user = await db.findUserByTelegramId(tgIdStr);
-
-  if (!user) {
-    // Auto-create user on first login
-    user = await db.createUser({
-      telegramId: tgIdStr,
-      username: tgUser.username,
-      firstName: tgUser.first_name || 'Foydalanuvchi',
-      lastName: tgUser.last_name,
-      photoUrl: tgUser.photo_url,
-      ageConfirmed: false,
-      onboardingDone: false,
-    });
-
-    // Check referral start_param
-    if (result.startParam && result.startParam.startsWith('ref_')) {
-      const parts = result.startParam.split('_');
-      const inviterId = parts[1];
-      const challengeId = parts[2];
-      if (inviterId) {
-        await db.registerReferral(inviterId, user.id, challengeId);
-      }
+      console.warn('[Auth] HMAC verification failed, trying fallback...');
     }
   }
 
-  if (user.isBlocked) {
-    res.status(403).json({
-      success: false,
-      error: {
-        code: 'USER_BLOCKED',
-        message: 'Sizning hisobingiz bloklangan. Administrator bilan bog‘laning.'
+  // ─── 3. Fallback: x-telegram-user header ────────────
+  if (telegramUserHeader) {
+    try {
+      const tgUser = JSON.parse(telegramUserHeader);
+      if (tgUser.id) {
+        const tgIdStr = String(tgUser.id);
+        let user = await db.findUserByTelegramId(tgIdStr);
+        if (!user) {
+          user = await db.createUser({
+            telegramId: tgIdStr, username: tgUser.username,
+            firstName: tgUser.first_name || 'Foydalanuvchi',
+            lastName: tgUser.last_name, photoUrl: tgUser.photo_url,
+            ageConfirmed: false, onboardingDone: false,
+          });
+        }
+        if (user.isBlocked) {
+          res.status(403).json({
+            success: false,
+            error: { code: 'USER_BLOCKED', message: 'Sizning hisobingiz bloklangan.' }
+          });
+          return;
+        }
+        req.user = user;
+        return next();
       }
-    });
-    return;
+    } catch (e) {
+      console.error('x-telegram-user parse error:', e);
+    }
   }
 
-  req.user = user;
-  next();
+  // ─── 4. No auth ────────────
+  res.status(401).json({
+    success: false,
+    error: {
+      code: 'UNAUTHORIZED',
+      message: 'Telegram initData topilmadi. Iltimos Telegram Mini App orqali kiring.'
+    }
+  });
 }
 
 /**

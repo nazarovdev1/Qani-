@@ -114,5 +114,22 @@ export const telegram = {
     } catch {
       // Browser dev mode
     }
+  },
+
+  /**
+   * Waits for Telegram initData to be available (handles race condition)
+   */
+  async waitForInitData(timeoutMs = 3000): Promise<string> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const data = window.Telegram?.WebApp?.initData;
+      if (data) {
+        console.log('[Telegram] initData available after', Date.now() - start, 'ms');
+        return data;
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+    console.warn('[Telegram] initData not available after', timeoutMs, 'ms');
+    return '';
   }
 };

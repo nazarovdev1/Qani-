@@ -105,6 +105,14 @@ export async function createApp() {
   // Trust proxy for Vercel (rate limiter needs this)
   app.set('trust proxy', 1);
 
+  // CORS middleware (allows Telegram Mini App custom headers)
+  app.use((_req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-telegram-init-data, x-mock-user-id, x-telegram-user');
+    next();
+  });
+
   // JSON Body Parser
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));

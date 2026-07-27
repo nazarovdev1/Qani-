@@ -14,14 +14,26 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     ...(options.headers as Record<string, string> || {})
   };
 
-  const initData = telegram.initData;
+  // Wait for initData if in Telegram (handles race condition on app open)
+  const initData = await telegram.waitForInitData(2000);
+
   if (initData) {
     headers['x-telegram-init-data'] = initData;
+    console.log(`[API ${endpoint}] initData sent (length: ${initData.length})`);
+  } else {
+    console.warn(`[API ${endpoint}] No initData available`);
   }
 
-  // Mock user header — faqat developer menyu orqali tanlanganda
-  if (currentMockUserId && !initData) {
+  // Also send unsafe user data as fallback for debugging
+  const tgUser = telegram.user;
+  if (tgUser) {
+    headers['x-telegram-user'] = JSON.stringify(tgUser);
+  }
+
+  // Mock user header — faqat developer menyu orqali tanlanganda va Telegram'da emas
+  if (currentMockUserId && !initData && !tgUser) {
     headers['x-mock-user-id'] = currentMockUserId;
+    console.log(`[API ${endpoint}] Using mock user:`, currentMockUserId);
   }
 
   try {
@@ -31,6 +43,9 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     });
 
     const json = await res.json();
+    if (!res.ok) {
+      console.warn(`[API ${endpoint}] HTTP ${res.status}:`, json);
+    }
     return json;
   } catch (err) {
     console.error(`API Request Error [${endpoint}]:`, err);
