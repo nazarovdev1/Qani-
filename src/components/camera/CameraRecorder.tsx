@@ -322,6 +322,7 @@ export const CameraRecorder: React.FC<CameraRecorderProps> = ({ challenge, lang,
               playsInline
               muted
               className="w-full h-full object-cover"
+              style={facingMode === 'user' ? { transform: 'scaleX(-1)' } : undefined}
             />
 
             {/* Live Progress Timer overlay */}
