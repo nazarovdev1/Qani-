@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FeedItem } from '../../types';
 import { Language } from '../../i18n';
-import { MapPin, Flag, EyeOff, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { MapPin, Flag, EyeOff, Play, Pause, Volume2, VolumeX, Trash2 } from 'lucide-react';
 import { CommentSection } from './CommentSection';
 import { apiRequest } from '../../lib/api';
 import { telegram } from '../../lib/telegram';
@@ -13,6 +13,7 @@ interface VideoCardProps {
   currentUser: import('../../types').User | null;
   onUnlockClick: () => void;
   onReportClick: (submissionId: string) => void;
+  onDeleteSubmission?: (submissionId: string) => void;
 }
 
 export const VideoCard: React.FC<VideoCardProps> = ({
@@ -21,14 +22,41 @@ export const VideoCard: React.FC<VideoCardProps> = ({
   lang,
   currentUser,
   onUnlockClick,
-  onReportClick
+  onReportClick,
+  onDeleteSubmission
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [reactions, setReactions] = useState(item.reactionsCount || {});
   const [userReaction, setUserReaction] = useState<string | undefined>(item.userReaction);
+  const [isDeleted, setIsDeleted] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN';
+
+  const handleDeleteVideo = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Ushbu videoni o‘chirishni tasdiqlaysizmi?')) return;
+    telegram.haptic('click');
+
+    const res = await apiRequest(`/submissions/${item.id}`, { method: 'DELETE' });
+    if (res.success) {
+      telegram.haptic('success');
+      setIsDeleted(true);
+      if (onDeleteSubmission) onDeleteSubmission(item.id);
+    } else {
+      alert(res.error?.message || 'Videoni o‘chirishda xatolik.');
+    }
+  };
+
+  if (isDeleted) {
+    return (
+      <div className="bg-[#F0F0F0] border-4 border-[#000000] p-4 text-center text-xs font-bold text-[#FF4D00]">
+        Video Admin tomonidan o‘chirildi.
+      </div>
+    );
+  }
 
   // Toggle Video Play/Pause
   const togglePlay = () => {
@@ -117,14 +145,26 @@ export const VideoCard: React.FC<VideoCardProps> = ({
           </div>
         </div>
 
-        {/* Report Button */}
-        <button
-          onClick={() => onReportClick(item.id)}
-          className="text-[#000000] hover:text-[#FF4D00] p-1.5 border-2 border-[#000000] bg-[#FFFFFF] shadow-[2px_2px_0px_#000000] transition-colors"
-          title="Xabar qilish"
-        >
-          <Flag className="w-4 h-4" />
-        </button>
+        {/* Actions: Admin Delete & Report */}
+        <div className="flex items-center space-x-1.5">
+          {isAdmin && (
+            <button
+              onClick={handleDeleteVideo}
+              className="text-[#FFFFFF] bg-[#FF4D00] hover:bg-[#000000] p-1.5 border-2 border-[#000000] shadow-[2px_2px_0px_#000000] transition-colors"
+              title="Videoni o‘chirish (Admin/Super Admin)"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+
+          <button
+            onClick={() => onReportClick(item.id)}
+            className="text-[#000000] hover:text-[#FF4D00] p-1.5 border-2 border-[#000000] bg-[#FFFFFF] shadow-[2px_2px_0px_#000000] transition-colors"
+            title="Xabar qilish"
+          >
+            <Flag className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* Main Media Player / Locked Blur Screen */}

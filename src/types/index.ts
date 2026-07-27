@@ -86,6 +86,20 @@ export interface ReferralStats {
   }>;
 }
 
+export interface ReportInfo {
+  id: string;
+  reporterId: string;
+  reason: string;
+  details?: string;
+  createdAt: string;
+  reporter?: { firstName: string };
+}
+
+export interface FlaggedSubmission extends Submission {
+  userName: string;
+  reports?: ReportInfo[];
+}
+
 export interface AdminAnalytics {
   totalUsers: number;
   newUsersToday: number;

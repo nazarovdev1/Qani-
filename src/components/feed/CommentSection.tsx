@@ -23,6 +23,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const fetchComments = useCallback(async () => {
     setLoading(true);
@@ -41,6 +42,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
 
   const handleSubmit = async () => {
     if (!text.trim() || !currentUser) return;
+    setErrorMsg(null);
     telegram.haptic('click');
     setSubmitting(true);
 
@@ -53,7 +55,11 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     if (res.success && res.data?.comment) {
       telegram.haptic('success');
       setText('');
+      setErrorMsg(null);
       setComments(prev => [res.data!.comment, ...prev]);
+    } else {
+      setErrorMsg(res.error?.message || 'Komment yuborishda xatolik yuz berdi. Qayta urinib ko‘ring.');
+      telegram.haptic('error');
     }
   };
 
@@ -86,30 +92,37 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         <div className="px-3 pb-3 space-y-3">
           {/* Comment Input */}
           {!isLocked && currentUser && (
-            <div className="flex items-start space-x-2">
-              <img
-                src={currentUser.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
-                alt={currentUser.firstName}
-                className="w-7 h-7 border-2 border-[#000000] object-cover flex-shrink-0 mt-0.5"
-              />
-              <div className="flex-1 flex items-center space-x-1.5">
-                <input
-                  type="text"
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                  placeholder="Komment yozish..."
-                  maxLength={500}
-                  className="flex-1 bg-[#FFFFFF] border-2 border-[#000000] px-2 py-1.5 text-xs font-bold text-[#000000] placeholder-zinc-500 focus:outline-none focus:bg-[#00FF00]/20 shadow-[2px_2px_0px_#000000]"
+            <div className="space-y-1.5">
+              <div className="flex items-start space-x-2">
+                <img
+                  src={currentUser.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
+                  alt={currentUser.firstName}
+                  className="w-7 h-7 border-2 border-[#000000] object-cover flex-shrink-0 mt-0.5"
                 />
-                <button
-                  onClick={handleSubmit}
-                  disabled={!text.trim() || submitting}
-                  className="p-1.5 bg-[#000000] text-[#00FF00] border-2 border-[#000000] shadow-[2px_2px_0px_#000000] hover:bg-[#00FF00] hover:text-[#000000] transition-colors disabled:opacity-40"
-                >
-                  {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                </button>
+                <div className="flex-1 flex items-center space-x-1.5">
+                  <input
+                    type="text"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+                    placeholder="Komment yozish..."
+                    maxLength={500}
+                    className="flex-1 bg-[#FFFFFF] border-2 border-[#000000] px-2 py-1.5 text-xs font-bold text-[#000000] placeholder-zinc-500 focus:outline-none focus:bg-[#00FF00]/20 shadow-[2px_2px_0px_#000000]"
+                  />
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!text.trim() || submitting}
+                    className="p-1.5 bg-[#000000] text-[#00FF00] border-2 border-[#000000] shadow-[2px_2px_0px_#000000] hover:bg-[#00FF00] hover:text-[#000000] transition-colors disabled:opacity-40"
+                  >
+                    {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
+              {errorMsg && (
+                <p className="text-[10px] font-bold text-[#FFFFFF] bg-[#FF4D00] border-2 border-[#000000] px-2 py-1 shadow-[2px_2px_0px_#000000]">
+                  {errorMsg}
+                </p>
+              )}
             </div>
           )}
 

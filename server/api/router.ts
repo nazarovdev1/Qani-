@@ -645,6 +645,27 @@ apiRouter.post('/admin/make-super-admin', async (req: AuthenticatedRequest, res:
   }
 });
 
+apiRouter.delete('/submissions/:id', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    const submissionId = req.params.id;
+    const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN';
+
+    const data = db.getData();
+    const sub = data.submissions?.find(s => s.id === submissionId);
+    
+    if (sub && !isAdmin && sub.userId !== user.id) {
+      return sendError(res, 403, 'FORBIDDEN', 'Faqat o‘z videongizni yoki admin sifatida o‘chira olasiz.');
+    }
+
+    await db.updateSubmissionModeration(submissionId, 'REMOVED');
+    res.json({ success: true, message: 'Video muvaffaqiyatli o‘chirildi.' });
+  } catch (err) {
+    console.error('/submissions/:id DELETE error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Videoni o‘chirishda xatolik.');
+  }
+});
+
 apiRouter.get('/admin/notifications', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const notifications = await db.getNotifications(req.user!.id);

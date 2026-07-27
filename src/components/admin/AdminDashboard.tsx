@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Challenge, AdminAnalytics, Submission } from '../../types';
+import { Challenge, AdminAnalytics, FlaggedSubmission } from '../../types';
 import { Language } from '../../i18n';
-import { Shield, Users, Video, AlertTriangle, Plus, CheckCircle2, XCircle, Trash2, Ban, Bell, MessageSquare, MessageCircle } from 'lucide-react';
+import { Shield, Users, Video, AlertTriangle, Plus, CheckCircle2, XCircle, Trash2, Ban, Bell, MessageSquare, MessageCircle, Star } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import { telegram } from '../../lib/telegram';
 
 interface AdminDashboardProps {
   lang: Language;
+  currentUser?: import('../../types').User | null;
 }
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUser }) => {
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
-  const [flaggedSubs, setFlaggedSubs] = useState<Array<Submission & { userName: string }>>([]);
+  const [flaggedSubs, setFlaggedSubs] = useState<FlaggedSubmission[]>([]);
   const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; type: string; isRead: boolean; createdAt: string }>>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,7 +30,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
     const [analyticsRes, challengesRes, modRes, notifRes] = await Promise.all([
       apiRequest<AdminAnalytics>('/admin/dashboard'),
       apiRequest<{ challenges: Challenge[] }>('/challenges'),
-      apiRequest<{ flaggedSubmissions: Array<Submission & { userName: string }> }>('/admin/moderation'),
+      apiRequest<{ flaggedSubmissions: FlaggedSubmission[] }>('/admin/moderation'),
       apiRequest<{ notifications: Array<{ id: string; title: string; message: string; type: string; isRead: boolean; createdAt: string }> }>('/admin/notifications')
     ]);
     setLoading(false);
@@ -133,6 +134,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
         </div>
       </div>
 
+      {/* Super Admin Status Banner */}
+      {currentUser?.role === 'SUPER_ADMIN' ? (
+        <div className="bg-[#000000] border-4 border-[#00FF00] p-4 shadow-[6px_6px_0px_#00FF00] text-[#00FF00] space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-xs font-black uppercase tracking-wider">
+              <Star className="w-5 h-5 text-[#00FF00] fill-[#00FF00]" />
+              <span>⭐ SUPER ADMIN PANEL — BARCHA VAKOLATLAR FAOL</span>
+            </div>
+            <span className="text-[10px] bg-[#00FF00] text-[#000000] px-2 py-0.5 font-black uppercase border border-[#FFFFFF]">
+              VIP ACCESS
+            </span>
+          </div>
+          <p className="text-[11px] font-semibold text-[#FFFFFF]/90 leading-tight">
+            Siz Super Admin huquqiga egasiz. Barcha foydalanuvchilarning videolarini hamda kommentariyalarini o‘chirish, kelib tushgan shikoyat (report)larni boshqarish va foydalanuvchilarni bloklash vakolatingiz mavjud.
+          </p>
+        </div>
+      ) : (
+        <div className="bg-[#000000] border-4 border-[#00FF00] p-3 shadow-[6px_6px_0px_#00FF00] flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-xs font-black uppercase text-[#00FF00]">
+            <Star className="w-4 h-4 text-[#00FF00]" />
+            <span>Super Admin huquqini olish</span>
+          </div>
+          <button
+            onClick={async () => {
+              telegram.haptic('click');
+              const res = await apiRequest('/admin/make-super-admin', { method: 'POST' });
+              if (res.success) {
+                telegram.haptic('success');
+                alert('Endi siz Super Admin ekansiz! Sahifani yangilang.');
+                window.location.reload();
+              } else {
+                alert(res.error?.message || 'Xatolik yuz berdi.');
+              }
+            }}
+            className="px-3 py-1.5 bg-[#00FF00] text-[#000000] border-2 border-[#FFFFFF] text-[10px] font-black uppercase hover:bg-[#FFFFFF] transition-colors shadow-[2px_2px_0px_#FFFFFF]"
+          >
+            Super Admin bo‘lish
+          </button>
+        </div>
+      )}
+
       {/* Analytics Dashboard Grid */}
       {loading ? (
         <div className="h-32 bg-[#F0F0F0] border-4 border-[#000000] shadow-[6px_6px_0px_#000000] animate-pulse" />
@@ -197,12 +239,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
           <p className="text-xs font-bold text-[#000000] py-2 text-center">Xabar qilingan videolar mavjud emas.</p>
         ) : (
           <div className="space-y-3">
-            {flaggedSubs.map(sub => (
+            {flaggedSubs.map(sub => {
+              const reportReasonsList = sub.reports?.map(r => ({
+                label: r.reason === 'OFFENSIVE_CONTENT' ? 'Haqoratli kontent' :
+                       r.reason === 'INAPPROPRIATE_CONTENT' ? 'Nomaqbul kontent' :
+                       r.reason === 'DANGEROUS_ACTION' ? 'Xavfli harakat' :
+                       r.reason === 'SPAM_OR_AD' ? 'Spam yoki reklama' :
+                       r.reason === 'PRIVACY_VIOLATION' ? 'Maxfiylik buzilishi' : 'Boshqa',
+                reporter: r.reporter?.firstName || 'Foydalanuvchi',
+                details: r.details
+              })) || [];
+
+              return (
               <div key={sub.id} className="bg-[#F0F0F0] border-2 border-[#000000] p-3 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-black uppercase text-[#000000]">{sub.userName || 'Foydalanuvchi'}</span>
                   <span className="text-[#FF4D00] font-black">{sub.reportCount} ta report</span>
                 </div>
+
+                {/* Report Reasons */}
+                {reportReasonsList.length > 0 && (
+                  <div className="space-y-1">
+                    {reportReasonsList.map((r, i) => (
+                      <div key={i} className="bg-[#FFFFFF] border border-[#000000] p-1.5 text-[10px] font-semibold">
+                        <span className="font-black uppercase text-[#FF4D00]">#{i + 1}:</span>{' '}
+                        <span>{r.label}</span>
+                        {r.details && <span className="text-[#000000]/70"> — {r.details}</span>}
+                        <span className="text-[#000000]/50"> ({r.reporter} xabar qilgan)</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex items-center space-x-2 pt-1">
                   <button
@@ -239,7 +306,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang }) => {
                   </button>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
       </div>

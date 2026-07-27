@@ -144,11 +144,12 @@ export default function App() {
                 lang={lang}
                 onNavigateLegal={setLegalPage}
                 onUpdateUser={setUser}
+                onNavigateAdmin={() => setActiveTab('admin')}
               />
             )}
 
             {activeTab === 'admin' && (
-              <AdminDashboard lang={lang} />
+              <AdminDashboard lang={lang} currentUser={user} />
             )}
           </>
         )}

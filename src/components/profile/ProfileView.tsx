@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../../types';
 import { Language, translations, regionsUzbekistan } from '../../i18n';
-import { Flame, Trophy, CheckCircle, Users, MapPin, Trash2, FileText, Shield, LogOut } from 'lucide-react';
+import { Flame, Trophy, CheckCircle, Users, MapPin, Trash2, FileText, Shield, LogOut, Settings } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import { telegram } from '../../lib/telegram';
 
@@ -10,13 +10,15 @@ interface ProfileViewProps {
   lang: Language;
   onNavigateLegal: (page: 'privacy' | 'terms') => void;
   onUpdateUser: (updatedUser: User) => void;
+  onNavigateAdmin?: () => void;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
   user,
   lang,
   onNavigateLegal,
-  onUpdateUser
+  onUpdateUser,
+  onNavigateAdmin
 }) => {
   const t = translations[lang];
   const [stats, setStats] = useState<{ challengesCompleted: number; activeReferralsCount: number } | null>(null);
@@ -103,6 +105,28 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Admin Badge & Panel Link */}
+      {(user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') && (
+        <div className="bg-[#000000] border-4 border-[#FF4D00] p-4 shadow-[6px_6px_0px_#FF4D00] flex items-center justify-between">
+          <div className="flex items-center space-x-2.5">
+            <Shield className="w-5 h-5 text-[#FF4D00]" />
+            <div>
+              <span className="text-[#00FF00] font-black text-xs uppercase tracking-wider">
+                {user.role === 'SUPER_ADMIN' ? '⭐ SUPER ADMIN' : '🛡️ ADMIN'}
+              </span>
+              <p className="text-[#FFFFFF]/70 text-[10px] font-semibold">Siz moderator huquqiga egasiz</p>
+            </div>
+          </div>
+          <button
+            onClick={() => onNavigateAdmin?.()}
+            className="px-3 py-1.5 bg-[#FF4D00] text-[#FFFFFF] border-2 border-[#FFFFFF] text-[10px] font-black uppercase hover:bg-[#FFFFFF] hover:text-[#000000] transition-colors shadow-[2px_2px_0px_#FFFFFF]"
+          >
+            <Settings className="w-3.5 h-3.5 inline-block mr-1" />
+            Panel
+          </button>
+        </div>
+      )}
 
       {/* Grid Metrics */}
       <div className="grid grid-cols-2 gap-3">
