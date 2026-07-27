@@ -30,7 +30,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, user, la
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#000000] border-t-4 border-[#000000] px-2 py-2.5 max-w-lg mx-auto shadow-[0_-4px_0_#000000]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#000000] border-t-4 border-[#000000] px-2 pt-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom))] max-w-lg mx-auto shadow-[0_-4px_0_#000000]">
       <div className="flex items-center justify-around">
         {navItems.map(item => {
           const isActive = activeTab === item.id;

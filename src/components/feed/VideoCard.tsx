@@ -155,9 +155,9 @@ export const VideoCard: React.FC<VideoCardProps> = ({
             <video
               ref={videoRef}
               src={item.videoUrl}
-              poster={item.thumbnailUrl}
               playsInline
               loop
+              preload="metadata"
               className="w-full h-full object-cover"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}

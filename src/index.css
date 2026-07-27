@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+/* Telegram Mini App / iOS safe area insets */
+html, body, #root {
+  height: 100%;
+}

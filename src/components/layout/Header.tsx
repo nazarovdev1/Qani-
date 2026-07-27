@@ -24,7 +24,7 @@ export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, on
   };
 
   return (
-    <header className="sticky top-0 z-40 bg-[#00FF00] text-[#000000] border-b-4 border-[#000000] px-4 py-3 flex items-center justify-between shadow-[0_4px_0_#000000]">
+    <header className="sticky top-0 z-40 bg-[#00FF00] text-[#000000] border-b-4 border-[#000000] px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3 flex items-center justify-between shadow-[0_4px_0_#000000]">
       {/* Brand Logo & Slogan */}
       <div className="flex items-center space-x-2.5">
         <div className="w-10 h-10 bg-[#000000] text-[#00FF00] border-2 border-[#000000] flex items-center justify-center font-black text-2xl tracking-tighter">

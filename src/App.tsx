@@ -85,7 +85,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="px-4 py-6 max-w-lg mx-auto pb-24">
+      <main className="px-4 py-6 max-w-lg mx-auto pb-[calc(6rem+env(safe-area-inset-bottom))]">
         {loading ? (
           <div className="space-y-4 py-8">
             <div className="h-48 bg-[#F0F0F0] border-4 border-[#000000] shadow-[6px_6px_0px_#000000] animate-pulse" />
