@@ -14,6 +14,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, onRefreshUser }) => {
   const [showDevMenu, setShowDevMenu] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const t = translations[lang];
 
   const handleSwitchMockUser = (mockId: string) => {
@@ -28,10 +29,12 @@ export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, on
       <div className="max-w-lg mx-auto px-4 pt-4 sm:pt-[max(1rem,env(safe-area-inset-top))] pb-3 flex items-center justify-between">
       {/* Brand Logo & Slogan */}
       <div className="flex items-center space-x-2.5">
-        <div className="w-10 h-10 bg-[#000000] text-[#00FF00] border-2 border-[#000000] flex items-center justify-center font-black text-2xl tracking-tighter">
-          Q?
-        </div>
-        <div>
+        <img
+          src="/logo.png"
+          alt="QANI?"
+          className="h-9 w-auto border-2 border-[#000000] shadow-[2px_2px_0_#000000] bg-[#000000]"
+        />
+        <div className="hidden sm:block">
           <div className="flex items-center space-x-1.5">
             <h1 className="font-black text-xl tracking-tighter uppercase italic text-[#000000]">
               QANI?
@@ -40,33 +43,30 @@ export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, on
               MVP
             </span>
           </div>
-          <p className="text-[10px] text-[#000000] font-bold uppercase tracking-wider hidden sm:block">
+          <p className="text-[10px] text-[#000000] font-bold uppercase tracking-wider">
             {t.slogan}
           </p>
         </div>
       </div>
 
       {/* Right Action Icons: Streak, Dev Switcher & Language */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         {/* Streak Counter */}
         {user && (
-          <div className="flex items-center space-x-1.5 bg-[#000000] text-[#00FF00] border-2 border-[#000000] px-3 py-1 text-xs font-black uppercase shadow-[2px_2px_0px_#000000]">
-            <Flame className="w-4 h-4 text-[#00FF00] fill-[#00FF00]" />
+          <div className="flex items-center gap-1 bg-[#000000] text-[#00FF00] border-2 border-[#000000] px-2 py-1 text-[10px] font-black uppercase shadow-[2px_2px_0px_#000000] flex-shrink-0">
+            <Flame className="w-3.5 h-3.5 text-[#00FF00] fill-[#00FF00]" />
             <span>{user.currentStreak} {lang === 'uz' ? 'KUN' : 'ДНЕЙ'}</span>
           </div>
         )}
 
         {/* Dev Mock User Switcher Modal Trigger */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <button
             onClick={() => setShowDevMenu(!showDevMenu)}
-            className="flex items-center space-x-1 bg-[#FFFFFF] text-[#000000] text-xs px-2.5 py-1 border-2 border-[#000000] font-bold uppercase shadow-[2px_2px_0px_#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors"
+            className="flex items-center justify-center bg-[#FFFFFF] text-[#000000] px-1.5 py-1 border-2 border-[#000000] font-bold uppercase shadow-[2px_2px_0px_#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors"
             title="Dev Mock User"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#FF4D00]" />
-            <span className="font-mono text-[11px] truncate max-w-[70px]">
-              {user?.role === 'SUPER_ADMIN' ? 'Admin' : user?.firstName || 'Dev'}
-            </span>
           </button>
 
           {/* Dev Mock User Dropdown */}
@@ -128,19 +128,31 @@ export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, on
         </div>
 
         {/* Language Selector */}
-        <div className="flex bg-[#000000] p-0.5 border-2 border-[#000000] text-[11px] font-black uppercase">
-          {(['uz', 'ru', 'en'] as Language[]).map(l => (
-            <button
-              key={l}
-              onClick={() => {
-                telegram.haptic('click');
-                onLanguageChange(l);
-              }}
-              className={`px-2 py-0.5 transition-colors ${lang === l ? 'bg-[#00FF00] text-[#000000] font-black' : 'text-[#FFFFFF] hover:text-[#00FF00]'}`}
-            >
-              {l.toUpperCase()}
-            </button>
-          ))}
+        <div className="relative flex-shrink-0">
+          <button
+            onClick={() => setShowLangMenu(!showLangMenu)}
+            className="flex items-center justify-center bg-[#000000] text-[#FFFFFF] text-[11px] font-black uppercase px-2 py-1 border-2 border-[#000000] shadow-[2px_2px_0px_#000000] hover:text-[#00FF00] transition-colors min-w-[2.5rem]"
+          >
+            {lang.toUpperCase()}
+          </button>
+
+          {showLangMenu && (
+            <div className="absolute right-0 mt-2 bg-[#000000] border-2 border-[#000000] shadow-[4px_4px_0px_#000000] z-50 flex flex-col">
+              {(['uz', 'ru', 'en'] as Language[]).map(l => (
+                <button
+                  key={l}
+                  onClick={() => {
+                    telegram.haptic('click');
+                    onLanguageChange(l);
+                    setShowLangMenu(false);
+                  }}
+                  className={`px-3 py-1.5 text-[11px] font-black uppercase transition-colors text-left ${lang === l ? 'bg-[#00FF00] text-[#000000]' : 'text-[#FFFFFF] hover:bg-[#1a1a1a] hover:text-[#00FF00]'}`}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
