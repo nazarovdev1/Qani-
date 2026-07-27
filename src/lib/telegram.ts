@@ -117,17 +117,29 @@ export const telegram = {
   },
 
   /**
-   * Waits for Telegram initData to be available (handles race condition)
+   * Waits for Telegram initData to be available (handles race condition).
+   * Also accepts initDataUnsafe.user as readiness signal — some clients
+   * populate unsafe data before the signed initData string.
    */
-  async waitForInitData(timeoutMs = 3000): Promise<string> {
+  async waitForInitData(timeoutMs = 5000): Promise<string> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
-      const data = window.Telegram?.WebApp?.initData;
-      if (data) {
+      const webApp = window.Telegram?.WebApp;
+      const initData = webApp?.initData;
+      const unsafeUser = webApp?.initDataUnsafe?.user;
+
+      if (initData) {
         console.log('[Telegram] initData available after', Date.now() - start, 'ms');
-        return data;
+        return initData;
       }
-      await new Promise(r => setTimeout(r, 100));
+
+      // Ba'zi clientlarda initData bo'sh bo'lsa ham unsafe.user bor
+      if (unsafeUser) {
+        console.log('[Telegram] initDataUnsafe.user available after', Date.now() - start, 'ms');
+        return ''; // Fallback auth x-telegram-user header orqali bo'ladi
+      }
+
+      await new Promise(r => setTimeout(r, 150));
     }
     console.warn('[Telegram] initData not available after', timeoutMs, 'ms');
     return '';

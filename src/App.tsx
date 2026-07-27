@@ -31,11 +31,20 @@ export default function App() {
   const [showCamera, setShowCamera] = useState(false);
 
   // Initialize App Data & Auth
-  const loadUserData = async () => {
+  const loadUserData = async (attempt = 1) => {
     setLoading(true);
     telegram.ready();
 
     const authRes = await apiRequest<{ user: User }>('/auth/me');
+
+    // Agar 401 kelib chiqsa va Telegram'da bo'lsak, retry qilamiz
+    // (initData inject ketma-ketligi kechikishi mumkin)
+    if (!authRes.success && authRes.error?.code === 'UNAUTHORIZED' && attempt < 3 && (telegram.user || telegram.webApp)) {
+      console.log(`[App] Auth failed, retrying in ${attempt * 1.5}s (attempt ${attempt})`);
+      setTimeout(() => loadUserData(attempt + 1), attempt * 1500);
+      return;
+    }
+
     if (authRes.success && authRes.data?.user) {
       setUser(authRes.data.user);
     }

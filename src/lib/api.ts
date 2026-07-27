@@ -15,16 +15,19 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
   };
 
   // Wait for initData if in Telegram (handles race condition on app open)
-  const initData = await telegram.waitForInitData(2000);
+  // Telefonlarda 2 soniya yetarli bo'lmasligi mumkin — 7 soniyaga oshirdik
+  const initData = await telegram.waitForInitData(7000);
 
   if (initData) {
     headers['x-telegram-init-data'] = initData;
     console.log(`[API ${endpoint}] initData sent (length: ${initData.length})`);
+  } else if (telegram.user) {
+    console.log(`[API ${endpoint}] initData empty, falling back to x-telegram-user`);
   } else {
-    console.warn(`[API ${endpoint}] No initData available`);
+    console.warn(`[API ${endpoint}] No Telegram data available`);
   }
 
-  // Also send unsafe user data as fallback for debugging
+  // Also send unsafe user data as fallback for debugging/prod
   const tgUser = telegram.user;
   if (tgUser) {
     headers['x-telegram-user'] = JSON.stringify(tgUser);
