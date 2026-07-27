@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { User } from '../../types';
 import { Language, translations } from '../../i18n';
-import { setMockUserId, currentMockUserId, apiRequest } from '../../lib/api';
-import { Flame, Globe, UserCheck, ShieldAlert, Sparkles, LogOut, Crown } from 'lucide-react';
+import { setMockUserId, apiRequest } from '../../lib/api';
+import { Flame, Globe, UserCheck, ShieldAlert, LogOut, Crown, ChevronDown, ChevronUp } from 'lucide-react';
 import { telegram } from '../../lib/telegram';
 
 interface HeaderProps {
@@ -13,26 +13,21 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, onRefreshUser }) => {
-  const [showDevMenu, setShowDevMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const t = translations[lang];
 
-  const handleSwitchMockUser = (mockId: string) => {
+  const handleReturnToTelegram = () => {
     telegram.haptic('click');
-    setMockUserId(mockId);
-    setShowDevMenu(false);
+    localStorage.removeItem('qani_mock_user_id');
+    setMockUserId('');
+    setShowUserMenu(false);
     onRefreshUser();
   };
 
-  const handleMakeSuperAdmin = async () => {
-    telegram.haptic('click');
-    const res = await apiRequest('/admin/make-super-admin', { method: 'POST' });
-    if (res.success) {
-      telegram.haptic('success');
-      setShowDevMenu(false);
-      onRefreshUser();
-    }
-  };
+  const userInitials = user
+    ? `${user.firstName.charAt(0)}${user.lastName ? user.lastName.charAt(0) : ''}`
+    : '?';
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#00FF00] text-[#000000] border-b-4 border-[#000000] shadow-[0_4px_0_#000000]">
@@ -59,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, on
         </div>
       </div>
 
-      {/* Right Action Icons: Streak, Dev Switcher & Language */}
+      {/* Right Action Icons: Streak, Profile & Language */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         {/* Streak Counter */}
         {user && (
@@ -69,77 +64,73 @@ export const Header: React.FC<HeaderProps> = ({ user, lang, onLanguageChange, on
           </div>
         )}
 
-        {/* Dev Mock User Switcher Modal Trigger */}
+        {/* User Profile Avatar */}
         <div className="relative flex-shrink-0">
           <button
-            onClick={() => setShowDevMenu(!showDevMenu)}
-            className="flex items-center justify-center bg-[#FFFFFF] text-[#000000] px-1.5 py-1 border-2 border-[#000000] font-bold uppercase shadow-[2px_2px_0px_#000000] hover:bg-[#000000] hover:text-[#FFFFFF] transition-colors"
-            title="Dev Mock User"
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="w-8 h-8 rounded-full border-2 border-[#000000] overflow-hidden shadow-[2px_2px_0px_#000000] hover:opacity-80 transition-opacity bg-[#FFFFFF] flex items-center justify-center"
+            title={user ? `${user.firstName} ${user.lastName || ''}` : 'Profil'}
           >
-            <Sparkles className="w-3.5 h-3.5 text-[#FF4D00]" />
+            {user?.photoUrl ? (
+              <img
+                src={user.photoUrl}
+                alt={user.firstName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-[10px] font-black text-[#000000] uppercase">
+                {userInitials}
+              </span>
+            )}
           </button>
 
-          {/* Dev Mock User Dropdown */}
-          {showDevMenu && (
-            <div className="absolute right-0 mt-2 w-56 bg-[#FFFFFF] border-4 border-[#000000] shadow-[6px_6px_0px_#000000] py-2 z-50 text-xs text-[#000000]">
-              <div className="px-3 py-1.5 border-b-2 border-[#000000] font-black uppercase text-[#000000] bg-[#00FF00] flex items-center justify-between">
-                <span>Dev Mock Auth</span>
-                <span className="text-[10px] bg-[#000000] text-[#FFFFFF] px-1.5 py-0.5 font-mono">
-                  {currentMockUserId}
-                </span>
+          {/* User Profile Dropdown */}
+          {showUserMenu && user && (
+            <div className="absolute right-0 mt-2 w-56 bg-[#FFFFFF] border-4 border-[#000000] shadow-[6px_6px_0px_#000000] z-50 text-xs text-[#000000]">
+              {/* User Info Header */}
+              <div className="px-3 py-3 border-b-2 border-[#000000] bg-[#000000] text-[#FFFFFF]">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full border-2 border-[#00FF00] overflow-hidden flex-shrink-0 bg-[#FFFFFF] flex items-center justify-center">
+                    {user.photoUrl ? (
+                      <img src={user.photoUrl} alt={user.firstName} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-black text-[#000000] uppercase">{userInitials}</span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-black text-sm truncate">
+                      {user.firstName} {user.lastName || ''}
+                    </p>
+                    {user.username && (
+                      <p className="text-[10px] text-[#00FF00] font-bold truncate">
+                        @{user.username}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 flex items-center space-x-1.5">
+                  {user.role === 'SUPER_ADMIN' && (
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-[#FF4D00] text-[#FFFFFF]">
+                      SUPER ADMIN
+                    </span>
+                  )}
+                  {user.role === 'ADMIN' && (
+                    <span className="text-[9px] font-black uppercase px-1.5 py-0.5 bg-[#FF4D00] text-[#FFFFFF]">
+                      ADMIN
+                    </span>
+                  )}
+                  {user.region && (
+                    <span className="text-[9px] font-bold text-[#00FF00]">
+                      {user.region}
+                    </span>
+                  )}
+                </div>
               </div>
 
+              {/* Return to Telegram */}
               <button
-                onClick={() => handleSwitchMockUser('user_001')}
-                className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-[#00FF00] font-bold ${currentMockUserId === 'user_001' ? 'bg-[#000000] text-[#00FF00]' : ''}`}
-              >
-                <div className="flex items-center space-x-2">
-                  <UserCheck className="w-3.5 h-3.5" />
-                  <span>Jasur (Standart User)</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => handleSwitchMockUser('user_002')}
-                className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-[#00FF00] font-bold ${currentMockUserId === 'user_002' ? 'bg-[#000000] text-[#00FF00]' : ''}`}
-              >
-                <div className="flex items-center space-x-2">
-                  <UserCheck className="w-3.5 h-3.5" />
-                  <span>Madina (Samarqand User)</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => handleSwitchMockUser('user_admin_001')}
-                className={`w-full text-left px-3 py-2 flex items-center justify-between hover:bg-[#FF4D00] hover:text-[#FFFFFF] font-bold ${currentMockUserId === 'user_admin_001' ? 'bg-[#000000] text-[#FF4D00]' : ''}`}
-              >
-                <div className="flex items-center space-x-2">
-                  <ShieldAlert className="w-3.5 h-3.5" />
-                  <span>Azizbek (Super Admin)</span>
-                </div>
-              </button>
-
-              <div className="border-t-2 border-[#000000] my-1"></div>
-
-              {/* Make Me Super Admin (only if not already) */}
-              {user?.role !== 'SUPER_ADMIN' && (
-                <button
-                  onClick={handleMakeSuperAdmin}
-                  className="w-full text-left px-3 py-2 flex items-center space-x-2 hover:bg-[#000000] hover:text-[#00FF00] font-bold text-[#000000]"
-                >
-                  <Crown className="w-3.5 h-3.5 text-[#FF4D00]" />
-                  <span>Make Me Super Admin</span>
-                </button>
-              )}
-
-              <button
-                onClick={() => {
-                  localStorage.removeItem('qani_mock_user_id');
-                  setMockUserId('');
-                  setShowDevMenu(false);
-                  onRefreshUser();
-                }}
-                className="w-full text-left px-3 py-2 flex items-center space-x-2 hover:bg-[#000000] hover:text-[#FFFFFF] font-bold text-[#000000]"
+                onClick={handleReturnToTelegram}
+                className="w-full text-left px-3 py-2.5 flex items-center space-x-2 hover:bg-[#000000] hover:text-[#FFFFFF] font-bold text-[#000000] border-b-2 border-[#000000]"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Telegram foydalanuvchisiga qaytish</span>
