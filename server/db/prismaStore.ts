@@ -3,6 +3,7 @@ import {
   User, Challenge, Submission, Reaction, Group,
   Role, ChallengeStatus, ProcessingStatus, ModerationStatus, ReportReason, ChallengeSchedule
 } from './types';
+import { sendChallengeNotification } from '../bot/telegramBot';
 
 // ─── Tashkent Timezone Helpers ───────────────────────────────────────
 
@@ -125,6 +126,16 @@ class PrismaStore {
     }
   }
 
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const users = await prisma.user.findMany();
+      return users.map(mapPrismaUser);
+    } catch (err) {
+      console.error('Prisma getAllUsers error:', err);
+      return [];
+    }
+  }
+
   async createUser(data: {
     telegramId: string;
     username?: string;
@@ -179,6 +190,23 @@ class PrismaStore {
 
   async getActiveChallenge(): Promise<Challenge | undefined> {
     const now = nowInTashkent();
+
+    // Auto-activate any SCHEDULED challenges whose startTime has passed
+    const toActivate = await prisma.challenge.findMany({
+      where: {
+        status: 'SCHEDULED',
+        startTime: { lte: now },
+      },
+    });
+    for (const ch of toActivate) {
+      await prisma.challenge.update({
+        where: { id: ch.id },
+        data: { status: 'ACTIVE' },
+      });
+      // Send Telegram notifications for newly activated challenge
+      this.sendNewChallengeNotifications(ch.title, ch.description);
+    }
+
     const challenge = await prisma.challenge.findFirst({
       where: {
         status: 'ACTIVE',
@@ -196,6 +224,22 @@ class PrismaStore {
       return fallback ? mapPrismaChallenge(fallback) : undefined;
     }
     return mapPrismaChallenge(challenge);
+  }
+
+  private async sendNewChallengeNotifications(title: string, description: string): Promise<void> {
+    try {
+      const users = await prisma.user.findMany({
+        where: { isBlocked: false },
+      });
+      for (const user of users) {
+        // Fire-and-forget — don't block the request
+        sendChallengeNotification(user.telegramId.toString(), title, description)
+          .catch(err => console.error('Failed to send notification to', user.telegramId, err));
+      }
+      console.log(`[Bot] Sent challenge notifications to ${users.length} users`);
+    } catch (err) {
+      console.error('Error sending challenge notifications:', err);
+    }
   }
 
   async getChallengeById(id: string): Promise<Challenge | undefined> {

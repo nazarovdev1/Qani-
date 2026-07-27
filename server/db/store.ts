@@ -6,6 +6,7 @@ import {
   ModerationAction, DailyActivity, AnalyticsEvent, Notification, AuditLog, Comment,
   ProcessingStatus, ReportReason, ChallengeSchedule
 } from './types';
+import { sendChallengeNotification } from '../bot/telegramBot';
 
 const DB_FILE = path.join(process.cwd(), '.qani_data.json');
 
@@ -314,6 +315,10 @@ class StoreAdapter {
     return this.data.users.find(u => u.id === id);
   }
 
+  public getAllUsers(): User[] {
+    return [...this.data.users];
+  }
+
   public createUser(user: Omit<User, 'id' | 'createdAt' | 'updatedAt' | 'currentStreak' | 'longestStreak' | 'role' | 'isBlocked' | 'referralCode'> & { referralCode?: string, role?: User['role'] }): User {
     const id = `user_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const nowISO = new Date().toISOString();
@@ -379,6 +384,10 @@ class StoreAdapter {
     }
     if (toActivate.length > 0) {
       this.saveData();
+      // Send Telegram notifications for newly activated challenges
+      for (const ch of toActivate) {
+        this.sendNewChallengeNotifications(ch);
+      }
     }
 
     // Find currently active challenge
@@ -388,6 +397,16 @@ class StoreAdapter {
       const end = new Date(c.endTime);
       return now >= start && now <= end;
     }) || this.data.challenges.find(c => c.status === 'ACTIVE');
+  }
+
+  private sendNewChallengeNotifications(challenge: Challenge): void {
+    const users = this.data.users.filter(u => !u.isBlocked);
+    for (const user of users) {
+      // Fire-and-forget — don't block the request
+      sendChallengeNotification(user.telegramId, challenge.title, challenge.description)
+        .catch(err => console.error('Failed to send notification to', user.telegramId, err));
+    }
+    console.log(`[Bot] Sent challenge notifications to ${users.length} users`);
   }
 
   public getChallengeById(id: string): Challenge | undefined {

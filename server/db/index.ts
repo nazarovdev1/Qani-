@@ -59,6 +59,13 @@ export const db = {
     return dbStore.findUserById(id);
   },
 
+  async getAllUsers() {
+    if (postgresAvailable) {
+      return prismaStore.getAllUsers();
+    }
+    return dbStore.getAllUsers();
+  },
+
   async createUser(data: any) {
     if (postgresAvailable) {
       return prismaStore.createUser(data);
