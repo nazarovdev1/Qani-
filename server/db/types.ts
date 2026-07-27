@@ -179,3 +179,11 @@ export interface Comment {
   text: string;
   createdAt: string;
 }
+
+export interface ChallengeSchedule {
+  id: string;
+  intervalHours: number;
+  nextChallengeTime: string;
+  timezone: string;
+  updatedAt: string;
+}

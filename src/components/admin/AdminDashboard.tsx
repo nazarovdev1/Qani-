@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Challenge, AdminAnalytics, FlaggedSubmission } from '../../types';
+import { Challenge, AdminAnalytics, FlaggedSubmission, ChallengeSchedule } from '../../types';
 import { Language } from '../../i18n';
-import { Shield, Users, Video, AlertTriangle, Plus, CheckCircle2, XCircle, Trash2, Ban, Bell, MessageSquare, MessageCircle, Star } from 'lucide-react';
+import { Shield, Users, Video, AlertTriangle, Plus, CheckCircle2, XCircle, Trash2, Ban, Bell, MessageSquare, MessageCircle, Star, Clock, Calendar } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import { telegram } from '../../lib/telegram';
 
@@ -25,13 +25,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
   const [example, setExample] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Schedule state
+  const [schedule, setSchedule] = useState<ChallengeSchedule | null>(null);
+  const [nextChallengeTime, setNextChallengeTime] = useState<string>('');
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [editInterval, setEditInterval] = useState(24);
+  const [editNextTime, setEditNextTime] = useState('');
+
+  // Scheduled challenge toggle
+  const [useScheduledTime, setUseScheduledTime] = useState(false);
+  const [scheduledFor, setScheduledFor] = useState('');
+
   const fetchAdminData = async () => {
     setLoading(true);
-    const [analyticsRes, challengesRes, modRes, notifRes] = await Promise.all([
+    const [analyticsRes, challengesRes, modRes, notifRes, scheduleRes] = await Promise.all([
       apiRequest<AdminAnalytics>('/admin/dashboard'),
       apiRequest<{ challenges: Challenge[] }>('/challenges'),
       apiRequest<{ flaggedSubmissions: FlaggedSubmission[] }>('/admin/moderation'),
-      apiRequest<{ notifications: Array<{ id: string; title: string; message: string; type: string; isRead: boolean; createdAt: string }> }>('/admin/notifications')
+      apiRequest<{ notifications: Array<{ id: string; title: string; message: string; type: string; isRead: boolean; createdAt: string }> }>('/admin/notifications'),
+      apiRequest<{ schedule: ChallengeSchedule; nextChallengeTime: string }>('/admin/schedule')
     ]);
     setLoading(false);
 
@@ -39,6 +51,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
     if (challengesRes.success && challengesRes.data?.challenges) setChallenges(challengesRes.data.challenges);
     if (modRes.success && modRes.data?.flaggedSubmissions) setFlaggedSubs(modRes.data.flaggedSubmissions);
     if (notifRes.success && notifRes.data?.notifications) setNotifications(notifRes.data.notifications);
+    if (scheduleRes.success && scheduleRes.data) {
+      setSchedule(scheduleRes.data.schedule);
+      setNextChallengeTime(scheduleRes.data.nextChallengeTime);
+    }
   };
 
   useEffect(() => {
@@ -57,17 +73,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
 
     telegram.haptic('click');
 
+    const body: Record<string, any> = {
+      title,
+      description: desc,
+      instruction,
+      example,
+      startTime,
+      endTime,
+      status: 'ACTIVE'
+    };
+
+    // If scheduled time is set, use it
+    if (useScheduledTime && scheduledFor) {
+      const scheduledDate = new Date(scheduledFor);
+      body.startTime = scheduledDate.toISOString();
+      body.endTime = new Date(scheduledDate.getTime() + 24 * 3600 * 1000).toISOString();
+      body.scheduledFor = scheduledDate.toISOString();
+    }
+
     const res = await apiRequest('/challenges', {
       method: 'POST',
-      body: JSON.stringify({
-        title,
-        description: desc,
-        instruction,
-        example,
-        startTime,
-        endTime,
-        status: 'ACTIVE'
-      })
+      body: JSON.stringify(body)
     });
 
     if (res.success) {
@@ -77,9 +103,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
       setDesc('');
       setInstruction('');
       setExample('');
+      setUseScheduledTime(false);
+      setScheduledFor('');
       fetchAdminData();
     } else {
       setErrorMsg(res.error?.message || 'Challenge yaratishda xatolik.');
+    }
+  };
+
+  const handleSaveSchedule = async () => {
+    telegram.haptic('click');
+    const body: Record<string, any> = {};
+    if (editInterval) body.intervalHours = editInterval;
+    if (editNextTime) body.nextChallengeTime = new Date(editNextTime).toISOString();
+
+    const res = await apiRequest('/admin/schedule', {
+      method: 'PUT',
+      body: JSON.stringify(body)
+    });
+
+    if (res.success) {
+      telegram.haptic('success');
+      setShowScheduleModal(false);
+      fetchAdminData();
+    } else {
+      setErrorMsg(res.error?.message || 'Jadvalni saqlashda xatolik.');
     }
   };
 
@@ -99,6 +147,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
   const handleMarkNotificationRead = async (id: string) => {
     await apiRequest(`/admin/notifications/${id}/read`, { method: 'POST' });
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  };
+
+  // Format next challenge time for display
+  const formatNextTime = (isoStr: string) => {
+    const d = new Date(isoStr);
+    return d.toLocaleString('uz-UZ', {
+      timeZone: 'Asia/Tashkent',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
   };
 
   return (
@@ -175,6 +233,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
         </div>
       )}
 
+      {/* Challenge Schedule Section (Super Admin only) */}
+      {currentUser?.role === 'SUPER_ADMIN' && (
+        <div className="bg-[#FFFFFF] border-4 border-[#000000] p-4 shadow-[6px_6px_0px_#000000] space-y-3">
+          <h3 className="font-black text-xs uppercase text-[#000000] flex items-center space-x-1.5 border-b-2 border-[#000000] pb-2">
+            <Calendar className="w-4 h-4 text-[#000000]" />
+            <span>Challenge Jadvali</span>
+          </h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-[#F0F0F0] border-2 border-[#000000] p-3 space-y-1">
+              <div className="text-[10px] font-black uppercase text-[#000000]">Interval</div>
+              <div className="text-lg font-black text-[#000000]">
+                {schedule ? `Har ${schedule.intervalHours} soat` : '—'}
+              </div>
+            </div>
+            <div className="bg-[#F0F0F0] border-2 border-[#000000] p-3 space-y-1">
+              <div className="text-[10px] font-black uppercase text-[#000000]">Keyingi Challenge</div>
+              <div className="text-xs font-black text-[#000000] leading-tight">
+                {nextChallengeTime ? formatNextTime(nextChallengeTime) : '—'}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              telegram.haptic('click');
+              if (schedule) {
+                setEditInterval(schedule.intervalHours);
+              }
+              setEditNextTime('');
+              setShowScheduleModal(true);
+            }}
+            className="w-full py-2.5 bg-[#000000] text-[#00FF00] hover:bg-[#00FF00] hover:text-[#000000] border-2 border-[#000000] text-xs font-black uppercase transition-colors shadow-[2px_2px_0px_#000000]"
+          >
+            <Clock className="w-3.5 h-3.5 inline mr-1" />
+            Jadvalni Sozlash
+          </button>
+        </div>
+      )}
+
       {/* Analytics Dashboard Grid */}
       {loading ? (
         <div className="h-32 bg-[#F0F0F0] border-4 border-[#000000] shadow-[6px_6px_0px_#000000] animate-pulse" />
@@ -217,12 +315,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
               <div className="flex items-center justify-between">
                 <h4 className="font-black text-xs uppercase text-[#000000]">{ch.title}</h4>
                 <span className={`text-[10px] font-black uppercase px-2 py-0.5 border ${
-                  ch.status === 'ACTIVE' ? 'bg-[#00FF00] text-[#000000] border-[#000000]' : 'bg-[#FFFFFF] text-[#000000] border-[#000000]'
+                  ch.status === 'ACTIVE' ? 'bg-[#00FF00] text-[#000000] border-[#000000]' :
+                  ch.status === 'SCHEDULED' ? 'bg-[#FFCC00] text-[#000000] border-[#000000]' :
+                  'bg-[#FFFFFF] text-[#000000] border-[#000000]'
                 }`}>
-                  {ch.status}
+                  {ch.status === 'SCHEDULED' ? 'REJALASHTIRILGAN' : ch.status}
                 </span>
               </div>
               <p className="text-[11px] font-semibold text-[#000000]">{ch.description}</p>
+              {ch.status === 'SCHEDULED' && (
+                <p className="text-[10px] font-bold text-[#FF4D00]">
+                  Boshlanishi: {formatNextTime(ch.startTime)}
+                </p>
+              )}
             </div>
           ))}
         </div>
@@ -345,6 +450,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
         </div>
       )}
 
+      {/* Schedule Settings Modal */}
+      {showScheduleModal && (
+        <div className="fixed inset-0 z-50 bg-[#000000]/80 flex items-center justify-center p-4">
+          <div className="bg-[#FFFFFF] border-4 border-[#000000] p-5 max-w-sm w-full space-y-3 shadow-[8px_8px_0px_#000000]">
+            <h3 className="font-black text-base uppercase text-[#000000] border-b-4 border-[#000000] pb-2">Challenge Jadvalini Sozlash</h3>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-[#000000] font-black uppercase">Interval (soat):</label>
+                <select
+                  value={editInterval}
+                  onChange={e => setEditInterval(Number(e.target.value))}
+                  className="w-full bg-[#F0F0F0] border-2 border-[#000000] p-2 text-[#000000] font-bold mt-1 focus:bg-[#00FF00]/20 focus:outline-none shadow-[2px_2px_0px_#000000]"
+                >
+                  <option value={6}>Har 6 soat</option>
+                  <option value={12}>Har 12 soat</option>
+                  <option value={24}>Har 24 soat (kunlik)</option>
+                  <option value={48}>Har 48 soat (2 kun)</option>
+                  <option value={72}>Har 72 soat (3 kun)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[#000000] font-black uppercase">Keyingi Challenge vaqti (Toshkent):</label>
+                <input
+                  type="datetime-local"
+                  value={editNextTime}
+                  onChange={e => setEditNextTime(e.target.value)}
+                  className="w-full bg-[#F0F0F0] border-2 border-[#000000] p-2 text-[#000000] font-bold mt-1 focus:bg-[#00FF00]/20 focus:outline-none shadow-[2px_2px_0px_#000000]"
+                />
+                <p className="text-[9px] text-[#000000]/60 mt-1">Agar belgilamasangiz, joriy jadval saqlanadi.</p>
+              </div>
+            </div>
+
+            {errorMsg && <p className="text-xs font-bold text-[#FFFFFF] bg-[#FF4D00] p-2 border-2 border-[#000000] text-center">{errorMsg}</p>}
+
+            <div className="flex items-center space-x-2 pt-2">
+              <button onClick={() => setShowScheduleModal(false)} className="flex-1 py-3 border-2 border-[#000000] bg-[#F0F0F0] text-xs font-black uppercase text-[#000000]">
+                Bekor qilish
+              </button>
+              <button onClick={handleSaveSchedule} className="flex-1 py-3 border-2 border-[#000000] bg-[#00FF00] hover:bg-[#000000] hover:text-[#00FF00] text-xs font-black uppercase text-[#000000] transition-colors">
+                Saqlash
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Challenge Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-[#000000]/80 flex items-center justify-center p-4">
@@ -394,6 +547,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
                   className="w-full bg-[#F0F0F0] border-2 border-[#000000] p-2 text-[#000000] font-bold mt-1 focus:bg-[#00FF00]/20 focus:outline-none shadow-[2px_2px_0px_#000000]"
                 />
               </div>
+
+              {/* Scheduled time toggle (Super Admin only) */}
+              {currentUser?.role === 'SUPER_ADMIN' && (
+                <div className="bg-[#000000] border-2 border-[#00FF00] p-3 space-y-2">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useScheduledTime}
+                      onChange={e => setUseScheduledTime(e.target.checked)}
+                      className="w-4 h-4 accent-[#00FF00]"
+                    />
+                    <span className="text-[#00FF00] font-black uppercase text-[10px]">Rejalashtirilgan vaqtda chiqarish</span>
+                  </label>
+
+                  {useScheduledTime && (
+                    <div>
+                      <label className="text-[#00FF00] font-black uppercase text-[10px]">Qachon chiqsin? (Toshkent vaqti):</label>
+                      <input
+                        type="datetime-local"
+                        value={scheduledFor}
+                        onChange={e => setScheduledFor(e.target.value)}
+                        className="w-full bg-[#F0F0F0] border-2 border-[#000000] p-2 text-[#000000] font-bold mt-1 focus:bg-[#00FF00]/20 focus:outline-none shadow-[2px_2px_0px_#000000]"
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {errorMsg && <p className="text-xs font-bold text-[#FFFFFF] bg-[#FF4D00] p-2 border-2 border-[#000000] text-center">{errorMsg}</p>}
@@ -403,7 +583,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ lang, currentUse
                 Bekor qilish
               </button>
               <button onClick={handleCreateChallenge} className="flex-1 py-3 border-2 border-[#000000] bg-[#00FF00] hover:bg-[#000000] hover:text-[#00FF00] text-xs font-black uppercase text-[#000000] transition-colors">
-                Chiqarish
+                {useScheduledTime ? 'Rejalashtirish' : 'Chiqarish'}
               </button>
             </div>
           </div>

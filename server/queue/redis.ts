@@ -1,15 +1,20 @@
 import Redis from 'ioredis';
 import tls from 'tls';
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = process.env.REDIS_URL || '';
 const isTLS = REDIS_URL.startsWith('rediss://');
 
 let redis: Redis | null = null;
 
 /**
  * Get Redis connection (lazy init)
+ * Returns null if REDIS_URL is not configured
  */
-export function getRedis(): Redis {
+export function getRedis(): Redis | null {
+  if (!REDIS_URL) {
+    return null;
+  }
+
   if (!redis) {
     redis = new Redis(REDIS_URL, {
       maxRetriesPerRequest: 3,
@@ -45,6 +50,7 @@ export function getRedis(): Redis {
 export async function testRedisConnection(): Promise<boolean> {
   try {
     const r = getRedis();
+    if (!r) return false;
     await r.connect();
     await r.ping();
     return true;
@@ -59,6 +65,7 @@ export async function testRedisConnection(): Promise<boolean> {
 export function isRedisAvailable(): boolean {
   try {
     const r = getRedis();
+    if (!r) return false;
     return r.status === 'ready' || r.status === 'connect';
   } catch {
     return false;

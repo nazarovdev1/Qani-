@@ -96,6 +96,29 @@ export const db = {
     return dbStore.getAllChallenges();
   },
 
+  // ─── Challenge Schedule ──────────────────────────────────────────
+
+  async getChallengeSchedule() {
+    if (postgresAvailable) {
+      return prismaStore.getChallengeSchedule();
+    }
+    return dbStore.getChallengeSchedule();
+  },
+
+  async setChallengeSchedule(data: any) {
+    if (postgresAvailable) {
+      return prismaStore.setChallengeSchedule(data);
+    }
+    return dbStore.setChallengeSchedule(data);
+  },
+
+  async getNextChallengeTime() {
+    if (postgresAvailable) {
+      return prismaStore.getNextChallengeTime();
+    }
+    return dbStore.getNextChallengeTime();
+  },
+
   async createChallenge(data: any) {
     if (postgresAvailable) {
       return prismaStore.createChallenge(data);

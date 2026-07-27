@@ -4,7 +4,7 @@ import {
   User, UserSettings, Challenge, Submission, MediaAsset,
   Reaction, Referral, Group, GroupMember, Report,
   ModerationAction, DailyActivity, AnalyticsEvent, Notification, AuditLog, Comment,
-  ProcessingStatus, ReportReason
+  ProcessingStatus, ReportReason, ChallengeSchedule
 } from './types';
 
 const DB_FILE = path.join(process.cwd(), '.qani_data.json');
@@ -13,6 +13,7 @@ export interface DatabaseData {
   users: User[];
   userSettings: UserSettings[];
   challenges: Challenge[];
+  challengeSchedule: ChallengeSchedule;
   submissions: Submission[];
   mediaAssets: MediaAsset[];
   reactions: Reaction[];
@@ -227,6 +228,15 @@ function seedDatabase(): DatabaseData {
     { id: 'ref_1', inviterId: 'user_001', invitedId: 'user_002', challengeId: 'ch_today_01', isActivated: true, createdAt: new Date().toISOString() }
   ];
 
+  // Default challenge schedule
+  const defaultSchedule: ChallengeSchedule = {
+    id: 'schedule_default',
+    intervalHours: 24,
+    nextChallengeTime: new Date(now.getTime() + 24 * 3600 * 1000).toISOString(),
+    timezone: 'Asia/Tashkent',
+    updatedAt: new Date().toISOString(),
+  };
+
   return {
     users: [adminUser, user1, user2, user3],
     userSettings: [
@@ -236,6 +246,7 @@ function seedDatabase(): DatabaseData {
       { id: 's_u3', userId: user3.id, language: 'uz', theme: 'system', notificationsEnabled: true, autoplayVideos: true, updatedAt: new Date().toISOString() },
     ],
     challenges: [activeChallenge, scheduledChallenge],
+    challengeSchedule: defaultSchedule,
     submissions: [sub1, sub2],
     mediaAssets: [],
     reactions,
@@ -354,9 +365,23 @@ class StoreAdapter {
     return this.data.users[index];
   }
 
-  // Active Challenge query
+  // Active Challenge query — also auto-activates SCHEDULED challenges whose startTime has passed
   public getActiveChallenge(): Challenge | undefined {
     const now = new Date();
+
+    // Auto-activate any SCHEDULED challenges whose startTime has passed
+    const toActivate = this.data.challenges.filter(c =>
+      c.status === 'SCHEDULED' && new Date(c.startTime) <= now
+    );
+    for (const ch of toActivate) {
+      ch.status = 'ACTIVE';
+      ch.updatedAt = new Date().toISOString();
+    }
+    if (toActivate.length > 0) {
+      this.saveData();
+    }
+
+    // Find currently active challenge
     return this.data.challenges.find(c => {
       if (c.status !== 'ACTIVE') return false;
       const start = new Date(c.startTime);
@@ -373,12 +398,61 @@ class StoreAdapter {
     return this.data.challenges.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
   }
 
-  public createChallenge(c: Omit<Challenge, 'id' | 'createdAt' | 'updatedAt'>): Challenge {
+  // ─── Challenge Schedule ──────────────────────────────────────────
+
+  public getChallengeSchedule(): ChallengeSchedule {
+    return this.data.challengeSchedule;
+  }
+
+  public setChallengeSchedule(data: Partial<Omit<ChallengeSchedule, 'id' | 'updatedAt'>>): ChallengeSchedule {
+    this.data.challengeSchedule = {
+      ...this.data.challengeSchedule,
+      ...data,
+      updatedAt: new Date().toISOString()
+    };
+    this.saveData();
+    return this.data.challengeSchedule;
+  }
+
+  public getNextChallengeTime(): string {
+    // If there's an active challenge, return its endTime
+    const active = this.getActiveChallenge();
+    if (active) {
+      return active.endTime;
+    }
+    // If there's a SCHEDULED challenge, return its startTime
+    const scheduled = this.data.challenges
+      .filter(c => c.status === 'SCHEDULED')
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
+    if (scheduled) {
+      return scheduled.startTime;
+    }
+    // Fallback to schedule config
+    return this.data.challengeSchedule.nextChallengeTime;
+  }
+
+  public createChallenge(c: Omit<Challenge, 'id' | 'createdAt' | 'updatedAt'> & { scheduledFor?: string }): Challenge {
     const id = `ch_${Date.now()}`;
     const nowISO = new Date().toISOString();
+
+    // If scheduledFor is set, use it as startTime and set status to SCHEDULED
+    let startTime = c.startTime;
+    let status = c.status;
+    if (c.scheduledFor) {
+      startTime = c.scheduledFor;
+      if (status === 'ACTIVE') {
+        status = 'SCHEDULED';
+      }
+    }
+
+    // Clean up scheduledFor from the spread
+    const { scheduledFor, ...rest } = c;
+
     const newChallenge: Challenge = {
-      ...c,
+      ...rest,
       id,
+      startTime,
+      status: status as Challenge['status'],
       createdAt: nowISO,
       updatedAt: nowISO
     };

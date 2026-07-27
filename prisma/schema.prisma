@@ -288,3 +288,11 @@ model AuditLog {
   ipAddress String?
   createdAt DateTime @default(now())
 }
+
+model ChallengeSchedule {
+  id                String   @id @default(uuid())
+  intervalHours     Int      @default(24)
+  nextChallengeTime DateTime
+  timezone          String   @default("Asia/Tashkent")
+  updatedAt         DateTime @updatedAt
+}

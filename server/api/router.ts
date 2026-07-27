@@ -61,7 +61,8 @@ const challengeCreateSchema = z.object({
   maxDurationSec: z.number().default(15),
   status: z.enum(['DRAFT', 'SCHEDULED', 'ACTIVE', 'ENDED', 'CANCELLED']).default('ACTIVE'),
   language: z.string().default('uz'),
-  sponsorName: z.string().optional()
+  sponsorName: z.string().optional(),
+  scheduledFor: z.string().optional()
 });
 
 // Helper for standardized error response
@@ -174,8 +175,10 @@ apiRouter.post('/challenges', requireAdmin, async (req: AuthenticatedRequest, re
       return sendError(res, 400, 'INVALID_INPUT', result.error.issues[0]?.message || 'Noto‘g‘ri ma‘lumot.');
     }
 
+    const { scheduledFor, ...challengeData } = result.data;
     const newChallenge = await db.createChallenge({
-      ...result.data,
+      ...challengeData,
+      scheduledFor,
       moderationLevel: 'STANDARD'
     });
 
@@ -642,6 +645,46 @@ apiRouter.post('/admin/make-super-admin', async (req: AuthenticatedRequest, res:
   } catch (err) {
     console.error('/admin/make-super-admin error:', err);
     sendError(res, 500, 'INTERNAL_ERROR', 'Rolni yangilashda xatolik.');
+  }
+});
+
+// ─── Challenge Schedule (Super Admin) ──────────────────────────────
+
+apiRouter.get('/admin/schedule', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const schedule = await db.getChallengeSchedule();
+    const nextTime = await db.getNextChallengeTime();
+    res.json({
+      success: true,
+      data: { schedule, nextChallengeTime: nextTime }
+    });
+  } catch (err) {
+    console.error('/admin/schedule error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Jadvalni olishda xatolik.');
+  }
+});
+
+apiRouter.put('/admin/schedule', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const user = req.user!;
+    if (user.role !== 'SUPER_ADMIN') {
+      return sendError(res, 403, 'FORBIDDEN', 'Faqat Super Admin jadvalni o‘zgartira oladi.');
+    }
+
+    const { intervalHours, nextChallengeTime, timezone } = req.body;
+    const updated = await db.setChallengeSchedule({
+      ...(intervalHours !== undefined ? { intervalHours } : {}),
+      ...(nextChallengeTime ? { nextChallengeTime } : {}),
+      ...(timezone ? { timezone } : {}),
+    });
+
+    res.json({
+      success: true,
+      data: { schedule: updated }
+    });
+  } catch (err) {
+    console.error('/admin/schedule PUT error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', 'Jadvalni yangilashda xatolik.');
   }
 });
 

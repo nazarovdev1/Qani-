@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import {
   User, Challenge, Submission, Reaction, Group,
-  Role, ChallengeStatus, ProcessingStatus, ModerationStatus, ReportReason
+  Role, ChallengeStatus, ProcessingStatus, ModerationStatus, ReportReason, ChallengeSchedule
 } from './types';
 
 // ─── Tashkent Timezone Helpers ───────────────────────────────────────
@@ -210,18 +210,97 @@ class PrismaStore {
     return challenges.map(mapPrismaChallenge);
   }
 
-  async createChallenge(data: Omit<Challenge, 'id' | 'createdAt' | 'updatedAt'>): Promise<Challenge> {
+  // ─── Challenge Schedule ──────────────────────────────────────────
+
+  async getChallengeSchedule(): Promise<ChallengeSchedule> {
+    let schedule = await prisma.challengeSchedule.findFirst();
+    if (!schedule) {
+      // Create default schedule
+      schedule = await prisma.challengeSchedule.create({
+        data: {
+          intervalHours: 24,
+          nextChallengeTime: new Date(Date.now() + 24 * 3600 * 1000),
+          timezone: 'Asia/Tashkent',
+        },
+      });
+    }
+    return {
+      id: schedule.id,
+      intervalHours: schedule.intervalHours,
+      nextChallengeTime: schedule.nextChallengeTime.toISOString(),
+      timezone: schedule.timezone,
+      updatedAt: schedule.updatedAt.toISOString(),
+    };
+  }
+
+  async setChallengeSchedule(data: Partial<Omit<ChallengeSchedule, 'id' | 'updatedAt'>>): Promise<ChallengeSchedule> {
+    let schedule = await prisma.challengeSchedule.findFirst();
+    if (!schedule) {
+      schedule = await prisma.challengeSchedule.create({
+        data: {
+          intervalHours: data.intervalHours ?? 24,
+          nextChallengeTime: data.nextChallengeTime ? new Date(data.nextChallengeTime) : new Date(Date.now() + 24 * 3600 * 1000),
+          timezone: data.timezone ?? 'Asia/Tashkent',
+        },
+      });
+    } else {
+      schedule = await prisma.challengeSchedule.update({
+        where: { id: schedule.id },
+        data: {
+          ...(data.intervalHours !== undefined ? { intervalHours: data.intervalHours } : {}),
+          ...(data.nextChallengeTime ? { nextChallengeTime: new Date(data.nextChallengeTime) } : {}),
+          ...(data.timezone ? { timezone: data.timezone } : {}),
+        },
+      });
+    }
+    return {
+      id: schedule.id,
+      intervalHours: schedule.intervalHours,
+      nextChallengeTime: schedule.nextChallengeTime.toISOString(),
+      timezone: schedule.timezone,
+      updatedAt: schedule.updatedAt.toISOString(),
+    };
+  }
+
+  async getNextChallengeTime(): Promise<string> {
+    // Check for active challenge
+    const active = await this.getActiveChallenge();
+    if (active) return active.endTime;
+
+    // Check for scheduled challenge
+    const scheduled = await prisma.challenge.findFirst({
+      where: { status: 'SCHEDULED' },
+      orderBy: { startTime: 'asc' },
+    });
+    if (scheduled) return scheduled.startTime.toISOString();
+
+    // Fallback to schedule config
+    const schedule = await this.getChallengeSchedule();
+    return schedule.nextChallengeTime;
+  }
+
+  async createChallenge(data: Omit<Challenge, 'id' | 'createdAt' | 'updatedAt'> & { scheduledFor?: string }): Promise<Challenge> {
+    // If scheduledFor is set, use it as startTime and set status to SCHEDULED
+    let startTime = data.startTime;
+    let status = data.status;
+    if (data.scheduledFor) {
+      startTime = data.scheduledFor;
+      if (status === 'ACTIVE') {
+        status = 'SCHEDULED';
+      }
+    }
+
     const challenge = await prisma.challenge.create({
       data: {
         title: data.title,
         description: data.description,
         instruction: data.instruction,
         example: data.example,
-        startTime: new Date(data.startTime),
+        startTime: new Date(startTime),
         endTime: new Date(data.endTime),
         minDurationSec: data.minDurationSec,
         maxDurationSec: data.maxDurationSec,
-        status: data.status,
+        status: status as ChallengeStatus,
         language: data.language,
         sponsorName: data.sponsorName,
         sponsorLogoUrl: data.sponsorLogoUrl,

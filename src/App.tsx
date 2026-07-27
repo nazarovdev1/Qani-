@@ -15,6 +15,7 @@ import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { TermsOfService } from './components/legal/TermsOfService';
 import { apiRequest } from './lib/api';
 import { telegram } from './lib/telegram';
+import { Clock, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -29,6 +30,10 @@ export default function App() {
 
   // Camera Overlay
   const [showCamera, setShowCamera] = useState(false);
+
+  // Next Challenge Countdown
+  const [nextChallengeTime, setNextChallengeTime] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<{ hours: number; minutes: number; seconds: number }>({ hours: 0, minutes: 0, seconds: 0 });
 
   // Initialize App Data & Auth
   const loadUserData = async (attempt = 1) => {
@@ -53,6 +58,14 @@ export default function App() {
     if (challengeRes.success && challengeRes.data?.challenge) {
       setActiveChallenge(challengeRes.data.challenge);
       setUserSubmission(challengeRes.data.userSubmission);
+      setNextChallengeTime(null);
+    } else {
+      // No active challenge — fetch next challenge time
+      setActiveChallenge(null);
+      const scheduleRes = await apiRequest<{ nextChallengeTime: string }>('/admin/schedule');
+      if (scheduleRes.success && scheduleRes.data?.nextChallengeTime) {
+        setNextChallengeTime(scheduleRes.data.nextChallengeTime);
+      }
     }
 
     setLoading(false);
@@ -61,6 +74,27 @@ export default function App() {
   useEffect(() => {
     loadUserData();
   }, []);
+
+  // Countdown timer for next challenge
+  useEffect(() => {
+    if (!nextChallengeTime) return;
+
+    const calculateTime = () => {
+      const target = new Date(nextChallengeTime).getTime();
+      const now = new Date().getTime();
+      const diff = Math.max(0, target - now);
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      setCountdown({ hours, minutes, seconds });
+    };
+
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
+  }, [nextChallengeTime]);
 
   // Handler after Onboarding completion
   const handleOnboardingComplete = (updatedUser: User) => {
@@ -114,9 +148,25 @@ export default function App() {
                     onStartClick={() => setShowCamera(true)}
                     onViewFeedClick={() => setActiveTab('feed')}
                   />
+                ) : nextChallengeTime ? (
+                  <div className="bg-[#000000] border-4 border-[#00FF00] p-6 shadow-[8px_8px_0px_#00FF00] text-center space-y-4">
+                    <div className="flex items-center justify-center space-x-2 text-[#00FF00] font-black text-sm uppercase tracking-wider">
+                      <Sparkles className="w-5 h-5" />
+                      <span>Keyingi Challenge</span>
+                    </div>
+                    <div className="text-4xl font-black text-[#00FF00] font-mono tracking-wider">
+                      {String(countdown.hours).padStart(2, '0')}:
+                      {String(countdown.minutes).padStart(2, '0')}:
+                      {String(countdown.seconds).padStart(2, '0')}
+                    </div>
+                    <div className="flex items-center justify-center space-x-1.5 text-[#FFFFFF]/80 text-xs font-bold">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>dan so‘ng boshlanadi</span>
+                    </div>
+                  </div>
                 ) : (
-                  <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 text-center text-zinc-400">
-                    Bugun aktiv topshiriq e’lon qilinmagan. Tez orada kutib qoling!
+                  <div className="bg-[#000000] border-4 border-[#000000] p-8 text-center text-[#FFFFFF]/60 font-bold text-sm shadow-[6px_6px_0px_#000000]">
+                    Hozircha faol topshiriq yo‘q. Tez orada kutib qoling!
                   </div>
                 )}
               </div>

@@ -1,4 +1,6 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
+import 'dotenv/config';
 import { createServer as createViteServer } from 'vite';
 import express from 'express';
 import { createApp } from './server/app';
@@ -48,9 +50,12 @@ async function startServer() {
 
 // ─── Start if run directly (not imported) ─────────────────────
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+const isMainModule = process.argv[1] && path.resolve(process.argv[1]).toLowerCase() === path.resolve(fileURLToPath(import.meta.url)).toLowerCase();
+
+if (isMainModule) {
   startServer().catch(err => {
     console.error('Failed to start server:', err);
     process.exit(1);
   });
 }
+

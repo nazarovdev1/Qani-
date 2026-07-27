@@ -123,3 +123,9 @@ export interface Comment {
 export interface CommentWithUser extends Comment {
   user: User;
 }
+
+export interface ChallengeSchedule {
+  intervalHours: number;
+  nextChallengeTime: string;
+  timezone: string;
+}

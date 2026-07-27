@@ -24,6 +24,10 @@ class VideoWorkerQueue {
   private async initRedis() {
     try {
       const redis = getRedis();
+      if (!redis) {
+        console.log('⚠️  Redis not configured, video worker using in-memory queue');
+        return;
+      }
       await redis.connect();
       await redis.ping();
       this.useRedis = true;
