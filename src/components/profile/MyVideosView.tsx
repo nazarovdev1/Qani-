@@ -144,7 +144,7 @@ export const MyVideosView: React.FC<MyVideosViewProps> = ({ lang, currentUser })
                 disabled={loading}
                 className="px-6 py-3 bg-[#000000] text-[#00FF00] border-4 border-[#00FF00] font-black text-xs uppercase tracking-wider shadow-[4px_4px_0px_#000000] hover:bg-[#00FF00] hover:text-[#000000] transition-colors disabled:opacity-50"
               >
-                {loading ? 'Yuklanmoqda...' : 'Ko'proq yuklash'}
+                {loading ? 'Yuklanmoqda...' : `Ko'proq yuklash`}
               </button>
             </div>
           )}
