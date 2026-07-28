@@ -6,6 +6,7 @@ import { telegramAuthMiddleware, requireAdmin, AuthenticatedRequest } from '../m
 import { storageService } from '../storage/storageService';
 import { videoWorker } from '../queue/videoWorker';
 import { ReportReason } from '../db/types';
+import { sendChallengeNotification } from '../bot/telegramBot';
 
 export const apiRouter = Router();
 
@@ -181,6 +182,32 @@ apiRouter.post('/challenges', requireAdmin, async (req: AuthenticatedRequest, re
       scheduledFor,
       moderationLevel: 'STANDARD'
     });
+
+    // Agar challenge ACTIVE statusida yaratilgan bo'lsa, barcha userlarga xabar yuborish
+    if (newChallenge.status === 'ACTIVE') {
+      try {
+        const allUsers = await db.getAllUsers();
+        const activeUsers = allUsers.filter((u: any) => !u.isBlocked);
+
+        for (const user of activeUsers) {
+          // In-app notification yaratish
+          await db.createNotification(
+            user.id,
+            '🎯 Yangi Challenge!',
+            `${newChallenge.title}\n\n${newChallenge.description}\n\n📸 Kamerani ochib, videongizni yozing va do'stlaringiz bilan baham ko'ring!`,
+            'NEW_CHALLENGE'
+          );
+
+          // Telegram xabar yuborish (fire-and-forget)
+          sendChallengeNotification(user.telegramId, newChallenge.title, newChallenge.description)
+            .catch(err => console.error('Telegram notification failed for', user.telegramId, err));
+        }
+        console.log(`[Notifications] Challenge xabari ${activeUsers.length} ta foydalanuvchiga yuborildi: "${newChallenge.title}"`);
+      } catch (notifyErr) {
+        // Response'ni bloklamaslik uchun xatolikni log qilamiz xolos
+        console.error('Error sending new challenge notifications:', notifyErr);
+      }
+    }
 
     res.json({
       success: true,
