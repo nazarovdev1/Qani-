@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { User, Challenge, Submission } from './types';
 import { Language } from './i18n';
 import { Header } from './components/layout/Header';
-import { Navbar, TabType } from './components/layout/Navbar';
+import { Navbar } from './components/layout/Navbar';
+export type TabType = 'today' | 'feed' | 'groups' | 'referral' | 'profile' | 'myVideos';
 import { OnboardingModal } from './components/onboarding/OnboardingModal';
 import { TodayChallengeCard } from './components/challenge/TodayChallengeCard';
 import { CameraRecorder } from './components/camera/CameraRecorder';
@@ -13,6 +14,7 @@ import { ProfileView } from './components/profile/ProfileView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { TermsOfService } from './components/legal/TermsOfService';
+import { MyVideosView } from './components/profile/MyVideosView';
 import { apiRequest } from './lib/api';
 import { telegram } from './lib/telegram';
 import { Clock, Sparkles } from 'lucide-react';
@@ -196,6 +198,14 @@ export default function App() {
                 onNavigateLegal={setLegalPage}
                 onUpdateUser={setUser}
                 onNavigateAdmin={() => setActiveTab('admin')}
+                onNavigateMyVideos={() => setActiveTab('myVideos')}
+              />
+            )}
+
+            {activeTab === 'myVideos' && (
+              <MyVideosView
+                user={user}
+                lang={lang}
               />
             )}
 

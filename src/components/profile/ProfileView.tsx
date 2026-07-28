@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../../types';
 import { Language, translations, regionsUzbekistan } from '../../i18n';
-import { Flame, Trophy, CheckCircle, Users, MapPin, Trash2, FileText, Shield, LogOut, Settings } from 'lucide-react';
+import { Flame, Trophy, CheckCircle, Users, MapPin, Trash2, FileText, Shield, LogOut, Settings, Video } from 'lucide-react';
 import { apiRequest } from '../../lib/api';
 import { telegram } from '../../lib/telegram';
 
@@ -11,6 +11,7 @@ interface ProfileViewProps {
   onNavigateLegal: (page: 'privacy' | 'terms') => void;
   onUpdateUser: (updatedUser: User) => void;
   onNavigateAdmin?: () => void;
+  onNavigateMyVideos?: () => void;
 }
 
 export const ProfileView: React.FC<ProfileViewProps> = ({
@@ -18,7 +19,8 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   lang,
   onNavigateLegal,
   onUpdateUser,
-  onNavigateAdmin
+  onNavigateAdmin,
+  onNavigateMyVideos
 }) => {
   const t = translations[lang];
   const [stats, setStats] = useState<{ challengesCompleted: number; activeReferralsCount: number } | null>(null);
@@ -165,8 +167,22 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
       {/* Settings & Legal Links */}
       <div className="bg-[#FFFFFF] border-4 border-[#000000] p-2 space-y-2 shadow-[6px_6px_0px_#000000]">
+        {/* Mening Videolarim button */}
+        {onNavigateMyVideos && (
+          <button
+            onClick={onNavigateMyVideos}
+            className="w-full p-3 border-2 border-[#000000] bg-[#F0F0F0] hover:bg-[#00FF00] flex items-center justify-between text-xs font-black uppercase text-[#000000] transition-colors"
+          >
+            <div className="flex items-center space-x-2.5">
+              <Video className="w-4 h-4 text-[#000000]" />
+              <span>Mening Videolarim</span>
+            </div>
+            <span className="font-black">&rarr;</span>
+          </button>
+        )}
+
         <button
-          onClick={() => onNavigateLegal('privacy')}
+          onClick={() => onNavigateLegal(‘privacy’)}
           className="w-full p-3 border-2 border-[#000000] bg-[#F0F0F0] hover:bg-[#00FF00] flex items-center justify-between text-xs font-black uppercase text-[#000000] transition-colors"
         >
           <div className="flex items-center space-x-2.5">
@@ -177,7 +193,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </button>
 
         <button
-          onClick={() => onNavigateLegal('terms')}
+          onClick={() => onNavigateLegal(‘terms’)}
           className="w-full p-3 border-2 border-[#000000] bg-[#F0F0F0] hover:bg-[#00FF00] flex items-center justify-between text-xs font-black uppercase text-[#000000] transition-colors"
         >
           <div className="flex items-center space-x-2.5">
@@ -193,7 +209,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         >
           <div className="flex items-center space-x-2.5">
             <Trash2 className="w-4 h-4" />
-            <span>Hisobni O‘chirish</span>
+            <span>Hisobni O’chirish</span>
           </div>
         </button>
       </div>

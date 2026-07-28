@@ -18,6 +18,7 @@ export interface UploadResult {
   fileUrl: string;
   mimeType: string;
   size: number;
+  originalPath?: string; // FFmpeg processing uchun lokal fayl yo'li
 }
 
 /**
@@ -99,7 +100,7 @@ export class StorageService {
       };
     }
 
-    // Local fallback
+    // Local fallback - save to uploads directory
     const filePath = path.join(UPLOAD_DIR, fileKey);
     await fs.promises.writeFile(filePath, buffer);
 
@@ -108,6 +109,7 @@ export class StorageService {
       fileUrl: `/uploads/${fileKey}`,
       mimeType,
       size: buffer.length,
+      originalPath: filePath, // FFmpeg uchun lokal fayl yo'li
     };
   }
 

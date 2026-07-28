@@ -1,15 +1,23 @@
+// server/queue/videoWorker.ts
 import { db } from '../db';
 import { ProcessingStatus } from '../db/types';
 import { getRedis, isRedisAvailable } from './redis';
+import { spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 
 export interface VideoProcessingJob {
   submissionId: string;
   videoUrl: string;
   durationSec?: number;
+  originalPath?: string; // Local fayl yo'li (agar mavjud bo'lsa)
 }
 
 const QUEUE_KEY = 'qani:video-queue';
 const PROCESSING_KEY = 'qani:processing';
+
+// FFmpeg binary yo'lini aniqlash
+const FFMPEG_PATH = process.env.FFMPEG_PATH || 'ffmpeg';
 
 class VideoWorkerQueue {
   private localQueue: VideoProcessingJob[] = [];
@@ -17,7 +25,6 @@ class VideoWorkerQueue {
   private useRedis = false;
 
   constructor() {
-    // Check if Redis is available on first enqueue
     this.initRedis();
   }
 
@@ -32,8 +39,6 @@ class VideoWorkerQueue {
       await redis.ping();
       this.useRedis = true;
       console.log('✅ Video worker using Redis queue');
-
-      // Recover any stuck jobs from previous run
       await this.recoverStuckJobs();
     } catch {
       console.log('⚠️  Redis not available, video worker using in-memory queue');
@@ -68,8 +73,6 @@ class VideoWorkerQueue {
         this.useRedis = false;
       }
     }
-
-    // Fallback: in-memory queue
     this.localQueue.push(job);
     this.processNextFromMemory();
   }
@@ -87,8 +90,6 @@ class VideoWorkerQueue {
       }
 
       const job: VideoProcessingJob = JSON.parse(jobStr);
-
-      // Mark as processing (for crash recovery)
       await redis.set(PROCESSING_KEY, jobStr, 'EX', 60);
 
       try {
@@ -98,15 +99,12 @@ class VideoWorkerQueue {
         await db.updateSubmissionStatus(job.submissionId, 'FAILED');
       }
 
-      // Clear processing marker
       await redis.del(PROCESSING_KEY);
     } catch (err) {
       console.error('Redis processing error:', err);
     }
 
     this.isProcessing = false;
-
-    // Process next job
     setTimeout(() => this.processNextFromRedis(), 200);
   }
 
@@ -133,33 +131,159 @@ class VideoWorkerQueue {
     }
   }
 
+  /**
+   * Haqiqiy FFmpeg video optimallashtirish
+   * - 720p HD gacha kichraytirish
+   * - H.264 codec, CRF 23, maxrate 1.5Mbps
+   * - Audio: AAC 128kbps
+   * - Thumbnail: JPEG extraction
+   */
   private async processVideo(job: VideoProcessingJob): Promise<void> {
-    // 1. Mark status as PROCESSING
     await db.updateSubmissionStatus(job.submissionId, 'PROCESSING');
 
-    // Simulate async FFmpeg processing (720p optimization & thumbnail extraction)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    const isLocalFile = job.originalPath && fs.existsSync(job.originalPath);
 
-    // Sample high quality dynamic thumbnail placeholding based on submission ID
-    const thumbnails = [
-      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600',
-      'https://images.unsplash.com/photo-1585336261026-870a782ae1b0?w=600',
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600',
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600'
-    ];
-    const thumbUrl = thumbnails[Math.floor(Math.random() * thumbnails.length)];
+    if (isLocalFile && FFMPEG_PATH === 'ffmpeg') {
+      // Haqiqiy FFmpeg processing - lokal fayl mavjud
+      await this.processWithFFmpeg(job);
+    } else {
+      // Fallback: remote URL yoki FFmpeg yo'q
+      // S3-presigned URL holatida - faqat status o'zgaradi
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-    // 2. Mark status as READY
-    await db.updateSubmissionStatus(
-      job.submissionId,
-      'READY',
-      job.videoUrl,
-      thumbUrl
-    );
+      const thumbnails = [
+        'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=600',
+        'https://images.unsplash.com/photo-1585336261026-870a782ae1b0?w=600',
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600',
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600'
+      ];
+      const thumbUrl = thumbnails[Math.floor(Math.random() * thumbnails.length)];
 
-    // 3. Log Analytics
+      await db.updateSubmissionStatus(job.submissionId, 'READY', job.videoUrl, thumbUrl);
+    }
+
     await db.logAnalytics('SUBMISSION_READY', undefined, undefined, {
       submissionId: job.submissionId
+    });
+  }
+
+  /**
+   * FFmpeg orqali video optimallashtirish
+   */
+  private async processWithFFmpeg(job: VideoProcessingJob): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      if (!job.originalPath) {
+        reject(new Error('Original path not provided'));
+        return;
+      }
+
+      const tempDir = path.join(process.cwd(), 'temp');
+      const outputDir = path.join(process.cwd(), 'public', 'uploads', 'processed');
+
+      // Papkalar mavjudligini tekshirish
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      const inputPath = job.originalPath;
+      const outputFilename = `${job.submissionId}_720p.mp4`;
+      const outputPath = path.join(outputDir, outputFilename);
+      const thumbnailPath = path.join(outputDir, `${job.submissionId}_thumb.jpg`);
+
+      console.log(`🎬 Processing video: ${inputPath} -> ${outputPath}`);
+
+      // FFmpeg command: 720p, H.264, CRF 23, maxrate 1.5Mbps
+      const ffmpegArgs = [
+        '-i', inputPath,
+        '-vf', 'scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2',
+        '-c:v', 'libx264',
+        '-preset', 'medium',
+        '-crf', '23',
+        '-maxrate', '1.5M',
+        '-bufsize', '3M',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        '-movflags', '+faststart',
+        '-y', // Overwrite output
+        outputPath
+      ];
+
+      const ffmpeg = spawn(FFMPEG_PATH, ffmpegArgs);
+      let stderr = '';
+
+      ffmpeg.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      ffmpeg.on('close', async (code) => {
+        if (code === 0) {
+          console.log(`✅ Video processed: ${outputPath}`);
+
+          // Thumbnail yaratish (1 soniyadan)
+          await this.extractThumbnail(inputPath, thumbnailPath);
+
+          // Optimallashtirilgan video URL
+          const optimizedVideoUrl = `/uploads/processed/${outputFilename}`;
+          const thumbnailUrl = `/uploads/processed/${job.submissionId}_thumb.jpg`;
+
+          // Fayl hajmini solishtirish
+          const originalSize = fs.statSync(inputPath).size;
+          const optimizedSize = fs.statSync(outputPath).size;
+          const savings = ((1 - optimizedSize / originalSize) * 100).toFixed(1);
+
+          console.log(`📊 Original: ${(originalSize / 1024 / 1024).toFixed(2)}MB, Optimized: ${(optimizedSize / 1024 / 1024).toFixed(2)}MB (${savings}% kamaydi)`);
+
+          await db.updateSubmissionStatus(job.submissionId, 'READY', optimizedVideoUrl, thumbnailUrl);
+
+          // Original faylni o'chirish (ixtiyoriy - S3 ga ko'chirilgan bo'lsa)
+          // fs.unlinkSync(inputPath);
+
+          resolve();
+        } else {
+          console.error(`❌ FFmpeg exited with code ${code}: ${stderr}`);
+          reject(new Error(`FFmpeg failed with code ${code}`));
+        }
+      });
+
+      ffmpeg.on('error', (err) => {
+        console.error('❌ FFmpeg spawn error:', err);
+        reject(err);
+      });
+    });
+  }
+
+  /**
+   * Videodan thumbnail ajratib olish
+   */
+  private async extractThumbnail(videoPath: string, thumbnailPath: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const ffmpegArgs = [
+        '-i', videoPath,
+        '-vf', 'scale=320:180:force_original_aspect_ratio=decrease',
+        '-frames:v', '1',
+        '-q:v', '2',
+        '-y',
+        thumbnailPath
+      ];
+
+      const ffmpeg = spawn(FFMPEG_PATH, ffmpegArgs);
+
+      ffmpeg.on('close', (code) => {
+        if (code === 0) {
+          console.log(`✅ Thumbnail created: ${thumbnailPath}`);
+          resolve();
+        } else {
+          console.error(`❌ Thumbnail extraction failed with code ${code}`);
+          reject(new Error(`Thumbnail failed with code ${code}`));
+        }
+      });
+
+      ffmpeg.on('error', (err) => {
+        reject(err);
+      });
     });
   }
 }

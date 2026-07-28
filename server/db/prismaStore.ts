@@ -488,6 +488,119 @@ class PrismaStore {
     });
   }
 
+  // ─── Video History (barcha challenge'lar uchun) ─────────────────
+
+  async getFeedHistory(
+    currentUserId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{
+    submissions: Array<Submission & { user: User; challenge: Challenge; reactionsCount: Record<string, number>; userReaction?: string }>;
+    total: number;
+    hasMore: boolean;
+  }> {
+    const skip = (page - 1) * limit;
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        processingStatus: 'READY',
+        moderationStatus: 'APPROVED',
+      },
+      include: {
+        user: true,
+        challenge: true,
+        reactions: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    });
+
+    const total = await prisma.submission.count({
+      where: {
+        processingStatus: 'READY',
+        moderationStatus: 'APPROVED',
+      },
+    });
+
+    return {
+      submissions: submissions.map((s) => {
+        const user = mapPrismaUser(s.user);
+        const challenge = mapPrismaChallenge(s.challenge);
+        const reactionsCount: Record<string, number> = {};
+        s.reactions.forEach((r: any) => {
+          reactionsCount[r.emoji] = (reactionsCount[r.emoji] || 0) + 1;
+        });
+        const userReaction = s.reactions.find((r: any) => r.userId === currentUserId)?.emoji;
+
+        return {
+          ...mapPrismaSubmission(s),
+          user,
+          challenge,
+          reactionsCount,
+          userReaction,
+        };
+      }),
+      total,
+      hasMore: skip + submissions.length < total,
+    };
+  }
+
+  // ─── Mening Videolarim (foydalanuvchining o'z videolari) ───────
+
+  async getMyVideos(
+    userId: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{
+    submissions: Array<Submission & { challenge: Challenge; reactionsCount: Record<string, number> }>;
+    total: number;
+    hasMore: boolean;
+  }> {
+    const skip = (page - 1) * limit;
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        userId,
+        processingStatus: 'READY',
+        moderationStatus: 'APPROVED',
+      },
+      include: {
+        challenge: true,
+        reactions: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    });
+
+    const total = await prisma.submission.count({
+      where: {
+        userId,
+        processingStatus: 'READY',
+        moderationStatus: 'APPROVED',
+      },
+    });
+
+    return {
+      submissions: submissions.map((s) => {
+        const challenge = mapPrismaChallenge(s.challenge);
+        const reactionsCount: Record<string, number> = {};
+        s.reactions.forEach((r: any) => {
+          reactionsCount[r.emoji] = (reactionsCount[r.emoji] || 0) + 1;
+        });
+
+        return {
+          ...mapPrismaSubmission(s),
+          challenge,
+          reactionsCount,
+        };
+      }),
+      total,
+      hasMore: skip + submissions.length < total,
+    };
+  }
+
   // ─── Reactions ─────────────────────────────────────────────────
 
   async toggleReaction(

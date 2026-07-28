@@ -263,7 +263,10 @@ apiRouter.post('/submissions/upload-direct', upload.single('video'), async (req:
     const saved = await storageService.saveFile(req.file.buffer, req.file.originalname, req.file.mimetype);
     res.json({
       success: true,
-      data: saved
+      data: {
+        ...saved,
+        originalPath: req.file.path // FFmpeg uchun lokal fayl yo'li
+      }
     });
   } catch (err) {
     console.error('/submissions/upload-direct error:', err);
@@ -341,7 +344,7 @@ apiRouter.get('/submissions/status/:id', async (req: AuthenticatedRequest, res: 
 
 // ─── 4. Friends Feed ──────────────────────────────────────────
 
-apiRouter.get('/feed/today', async (req: AuthenticatedRequest, res: Response) => {
+apiRouter.get(‘/feed/today’, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const user = req.user!;
     const activeChallenge = await db.getActiveChallenge();
@@ -349,18 +352,18 @@ apiRouter.get('/feed/today', async (req: AuthenticatedRequest, res: Response) =>
     if (!activeChallenge) {
       return res.json({
         success: true,
-        data: { isLocked: false, feed: [], message: 'Hozircha faol topshiriq yo‘q.' }
+        data: { isLocked: false, feed: [], message: ‘Hozircha faol topshiriq yo’q.’ }
       });
     }
 
     const userSub = await db.getUserSubmissionForChallenge(user.id, activeChallenge.id);
 
     // Check feed locking rule: User must submit video before unlocked! (skip for SUPER_ADMIN)
-    const isLocked = user.role !== 'SUPER_ADMIN' && (!userSub || userSub.processingStatus !== 'READY');
+    const isLocked = user.role !== ‘SUPER_ADMIN’ && (!userSub || userSub.processingStatus !== ‘READY’);
 
     const feed = await db.getFeedForChallenge(activeChallenge.id, user.id);
 
-    await db.logAnalytics('FEED_VIEWED', user.id, activeChallenge.id);
+    await db.logAnalytics(‘FEED_VIEWED’, user.id, activeChallenge.id);
 
     res.json({
       success: true,
@@ -371,8 +374,48 @@ apiRouter.get('/feed/today', async (req: AuthenticatedRequest, res: Response) =>
       }
     });
   } catch (err) {
-    console.error('/feed/today error:', err);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Feedni olishda xatolik.');
+    console.error(‘/feed/today error:’, err);
+    sendError(res, 500, ‘INTERNAL_ERROR’, ‘Feedni olishda xatolik.’);
+  }
+});
+
+// ─── Video History (barcha o’tgan challenge’lar) ────────────────
+
+apiRouter.get(‘/feed/history’, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const result = await db.getFeedHistory(req.user!.id, page, limit);
+
+    await db.logAnalytics(‘HISTORY_VIEWED’, req.user!.id);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    console.error(‘/feed/history error:’, err);
+    sendError(res, 500, ‘INTERNAL_ERROR’, ‘Tarixni olishda xatolik.’);
+  }
+});
+
+// ─── Mening Videolarim ──────────────────────────────────────────
+
+apiRouter.get(‘/profile/my-videos’, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+
+    const result = await db.getMyVideos(req.user!.id, page, limit);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (err) {
+    console.error(‘/profile/my-videos error:’, err);
+    sendError(res, 500, ‘INTERNAL_ERROR’, ‘Videolarni olishda xatolik.’);
   }
 });
 
