@@ -31,34 +31,34 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, onTabChange, user, la
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 w-full bg-[#000000] border-t-4 border-[#000000] shadow-[0_-4px_0_#000000]">
-      <div className="max-w-lg mx-auto px-2 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))]">
-      <div className="flex items-center justify-around">
-        {navItems.map(item => {
-          const isActive = activeTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => {
-                telegram.haptic('click');
-                onTabChange(item.id);
-              }}
-              className={`flex flex-col items-center justify-center py-1.5 px-3 transition-all duration-150 uppercase tracking-wider font-black ${
-                isActive
-                  ? 'bg-[#00FF00] text-[#000000] border-2 border-[#FFFFFF] shadow-[2px_2px_0px_#FFFFFF] scale-105'
-                  : 'text-[#FFFFFF] hover:text-[#00FF00]'
-              }`}
-            >
-              <div className={isActive ? 'text-[#000000]' : 'text-current'}>
-                {item.icon}
-              </div>
-              <span className="text-[10px] mt-0.5 font-bold">
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
+      <div className="max-w-lg mx-auto px-2 pt-3 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="flex items-center justify-around">
+          {navItems.map(item => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  telegram.haptic('click');
+                  onTabChange(item.id);
+                }}
+                className={`flex flex-col items-center justify-center py-2 px-2 transition-all duration-150 uppercase tracking-wider font-black ${
+                  isActive
+                    ? 'bg-[#00FF00] text-[#000000] border-2 border-[#FFFFFF] shadow-[2px_2px_0px_#FFFFFF] scale-105'
+                    : 'text-[#FFFFFF] hover:text-[#00FF00]'
+                }`}
+              >
+                <div className={`${isActive ? 'text-[#000000]' : 'text-[#FFFFFF]'} mb-0.5`}>
+                  {item.icon}
+                </div>
+                <span className="text-[9px] leading-tight font-bold text-center whitespace-nowrap">
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  </nav>
+    </nav>
   );
 };
