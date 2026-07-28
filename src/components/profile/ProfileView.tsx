@@ -182,7 +182,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         )}
 
         <button
-          onClick={() => onNavigateLegal(‘privacy’)}
+          onClick={() => onNavigateLegal("privacy")}
           className="w-full p-3 border-2 border-[#000000] bg-[#F0F0F0] hover:bg-[#00FF00] flex items-center justify-between text-xs font-black uppercase text-[#000000] transition-colors"
         >
           <div className="flex items-center space-x-2.5">
@@ -193,7 +193,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
         </button>
 
         <button
-          onClick={() => onNavigateLegal(‘terms’)}
+          onClick={() => onNavigateLegal("terms")}
           className="w-full p-3 border-2 border-[#000000] bg-[#F0F0F0] hover:bg-[#00FF00] flex items-center justify-between text-xs font-black uppercase text-[#000000] transition-colors"
         >
           <div className="flex items-center space-x-2.5">

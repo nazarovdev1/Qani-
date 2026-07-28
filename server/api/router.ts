@@ -97,7 +97,7 @@ apiRouter.get('/auth/me', async (req: AuthenticatedRequest, res: Response) => {
     });
   } catch (err) {
     console.error('/auth/me error:', err);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Ma\'lumotlarni olishda xatolik.');
+    sendError(res, 500, 'INTERNAL_ERROR', 'Malumotlarni olishda xatolik.');
   }
 });
 
@@ -105,7 +105,7 @@ apiRouter.post('/auth/onboarding', async (req: AuthenticatedRequest, res: Respon
   try {
     const parseResult = onboardingSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return sendError(res, 400, 'VALIDATION_ERROR', parseResult.error.issues[0]?.message || 'Noto‘g‘ri ma‘lumot.');
+      return sendError(res, 400, 'VALIDATION_ERROR', parseResult.error.issues[0]?.message || "Notogri malumot.");
     }
 
     const user = req.user!;
@@ -165,7 +165,7 @@ apiRouter.get('/challenges', async (_req: AuthenticatedRequest, res: Response) =
     });
   } catch (err) {
     console.error('/challenges error:', err);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Topshiriqlar ro\'yxatini olishda xatolik.');
+    sendError(res, 500, 'INTERNAL_ERROR', "Topshiriqlar royxatini olishda xatolik.");
   }
 });
 
@@ -173,7 +173,7 @@ apiRouter.post('/challenges', requireAdmin, async (req: AuthenticatedRequest, re
   try {
     const result = challengeCreateSchema.safeParse(req.body);
     if (!result.success) {
-      return sendError(res, 400, 'INVALID_INPUT', result.error.issues[0]?.message || 'Noto‘g‘ri ma‘lumot.');
+      return sendError(res, 400, 'INVALID_INPUT', result.error.issues[0]?.message || "Notogri malumot.");
     }
 
     const { scheduledFor, ...challengeData } = result.data;
@@ -193,8 +193,8 @@ apiRouter.post('/challenges', requireAdmin, async (req: AuthenticatedRequest, re
           // In-app notification yaratish
           await db.createNotification(
             user.id,
-            '🎯 Yangi Challenge!',
-            `${newChallenge.title}\n\n${newChallenge.description}\n\n📸 Kamerani ochib, videongizni yozing va do'stlaringiz bilan baham ko'ring!`,
+            'Yangi Challenge!',
+            `${newChallenge.title}\n\n${newChallenge.description}\n\nKamerani ochib, videongizni yozing va dostlaringiz bilan baham koring!`,
             'NEW_CHALLENGE'
           );
 
@@ -278,7 +278,7 @@ apiRouter.post('/submissions', async (req: AuthenticatedRequest, res: Response) 
   try {
     const result = submissionSchema.safeParse(req.body);
     if (!result.success) {
-      return sendError(res, 400, 'INVALID_INPUT', result.error.issues[0]?.message || 'Noto‘g‘ri ma‘lumot.');
+      return sendError(res, 400, 'INVALID_INPUT', result.error.issues[0]?.message || "Notogri malumot.");
     }
 
     const user = req.user!;
@@ -344,7 +344,7 @@ apiRouter.get('/submissions/status/:id', async (req: AuthenticatedRequest, res: 
 
 // ─── 4. Friends Feed ──────────────────────────────────────────
 
-apiRouter.get(‘/feed/today’, async (req: AuthenticatedRequest, res: Response) => {
+apiRouter.get('/feed/today', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const user = req.user!;
     const activeChallenge = await db.getActiveChallenge();
@@ -352,18 +352,18 @@ apiRouter.get(‘/feed/today’, async (req: AuthenticatedRequest, res: Response
     if (!activeChallenge) {
       return res.json({
         success: true,
-        data: { isLocked: false, feed: [], message: ‘Hozircha faol topshiriq yo’q.’ }
+        data: { isLocked: false, feed: [], message: "Hozircha faol topshiriq yoq." }
       });
     }
 
     const userSub = await db.getUserSubmissionForChallenge(user.id, activeChallenge.id);
 
     // Check feed locking rule: User must submit video before unlocked! (skip for SUPER_ADMIN)
-    const isLocked = user.role !== ‘SUPER_ADMIN’ && (!userSub || userSub.processingStatus !== ‘READY’);
+    const isLocked = user.role !== 'SUPER_ADMIN' && (!userSub || userSub.processingStatus !== 'READY');
 
     const feed = await db.getFeedForChallenge(activeChallenge.id, user.id);
 
-    await db.logAnalytics(‘FEED_VIEWED’, user.id, activeChallenge.id);
+    await db.logAnalytics('FEED_VIEWED', user.id, activeChallenge.id);
 
     res.json({
       success: true,
@@ -374,35 +374,35 @@ apiRouter.get(‘/feed/today’, async (req: AuthenticatedRequest, res: Response
       }
     });
   } catch (err) {
-    console.error(‘/feed/today error:’, err);
-    sendError(res, 500, ‘INTERNAL_ERROR’, ‘Feedni olishda xatolik.’);
+    console.error('/feed/today error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', "Feedni olishda xatolik.");
   }
 });
 
-// ─── Video History (barcha o’tgan challenge’lar) ────────────────
+// ─── Video History (barcha otgan challengelar) ────────────────
 
-apiRouter.get(‘/feed/history’, async (req: AuthenticatedRequest, res: Response) => {
+apiRouter.get('/feed/history', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
 
     const result = await db.getFeedHistory(req.user!.id, page, limit);
 
-    await db.logAnalytics(‘HISTORY_VIEWED’, req.user!.id);
+    await db.logAnalytics('HISTORY_VIEWED', req.user!.id);
 
     res.json({
       success: true,
       data: result
     });
   } catch (err) {
-    console.error(‘/feed/history error:’, err);
-    sendError(res, 500, ‘INTERNAL_ERROR’, ‘Tarixni olishda xatolik.’);
+    console.error('/feed/history error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', "Tarixni olishda xatolik.");
   }
 });
 
 // ─── Mening Videolarim ──────────────────────────────────────────
 
-apiRouter.get(‘/profile/my-videos’, async (req: AuthenticatedRequest, res: Response) => {
+apiRouter.get('/profile/my-videos', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -414,8 +414,8 @@ apiRouter.get(‘/profile/my-videos’, async (req: AuthenticatedRequest, res: R
       data: result
     });
   } catch (err) {
-    console.error(‘/profile/my-videos error:’, err);
-    sendError(res, 500, ‘INTERNAL_ERROR’, ‘Videolarni olishda xatolik.’);
+    console.error('/profile/my-videos error:', err);
+    sendError(res, 500, 'INTERNAL_ERROR', "Videolarni olishda xatolik.");
   }
 });
 
@@ -425,7 +425,7 @@ apiRouter.post('/reactions/toggle', async (req: AuthenticatedRequest, res: Respo
   try {
     const parseResult = reactionSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return sendError(res, 400, 'INVALID_INPUT', parseResult.error.issues[0]?.message || 'Noto‘g‘ri ma‘lumot.');
+      return sendError(res, 400, 'INVALID_INPUT', parseResult.error.issues[0]?.message || "Notogri malumot.");
     }
 
     const user = req.user!;
@@ -440,7 +440,7 @@ apiRouter.post('/reactions/toggle', async (req: AuthenticatedRequest, res: Respo
     });
   } catch (err) {
     console.error('/reactions/toggle error:', err);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Reaksiya qo‘shishda xatolik.');
+    sendError(res, 500, 'INTERNAL_ERROR', "Reaksiya qoshishda xatolik.");
   }
 });
 
@@ -448,7 +448,7 @@ apiRouter.post('/reports', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const parseResult = reportSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return sendError(res, 400, 'INVALID_INPUT', parseResult.error.issues[0]?.message || 'Noto‘g‘ri ma‘lumot.');
+      return sendError(res, 400, 'INVALID_INPUT', parseResult.error.issues[0]?.message || "Notogri malumot.");
     }
 
     const user = req.user!;
@@ -541,16 +541,16 @@ apiRouter.post('/profile/delete-account', async (req: AuthenticatedRequest, res:
     const user = req.user!;
     await db.updateUser(user.id, {
       isBlocked: true,
-      firstName: 'O‘chirilgan Foydalanuvchi'
+      firstName: "Ochirilgan Foydalanuvchi"
     });
 
     res.json({
       success: true,
-      message: 'Hisobingiz muvaffaqiyatli o‘chirildi va ma‘lumotlaringiz anonimlashtirildi.'
+      message: "Hisobingiz muvaffaqiyatli ochirildi va malumotlaringiz anonimlashtirildi."
     });
   } catch (err) {
     console.error('/profile/delete-account error:', err);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Hisobni o‘chirishda xatolik.');
+    sendError(res, 500, 'INTERNAL_ERROR', 'Hisobni ochirishda xatolik.');
   }
 });
 
@@ -581,7 +581,7 @@ apiRouter.post('/groups', async (req: AuthenticatedRequest, res: Response) => {
   try {
     const parseResult = createGroupSchema.safeParse(req.body);
     if (!parseResult.success) {
-      return sendError(res, 400, 'INVALID_INPUT', parseResult.error.issues[0]?.message || 'Noto‘g‘ri ma‘lumot.');
+      return sendError(res, 400, 'INVALID_INPUT', parseResult.error.issues[0]?.message || "Notogri malumot.");
     }
 
     const group = await db.createGroup(req.user!.id, parseResult.data.name, parseResult.data.description);
@@ -606,7 +606,7 @@ apiRouter.post('/groups/join', async (req: AuthenticatedRequest, res: Response) 
 
     const result = await db.joinGroup(req.user!.id, inviteCode);
     if (!result.success) {
-      return sendError(res, 400, 'JOIN_FAILED', result.message || 'Guruhga qo‘shilishda xatolik.');
+      return sendError(res, 400, 'JOIN_FAILED', result.message || "Guruhga qoshilishda xatolik.");
     }
 
     await db.logAnalytics('GROUP_JOINED', req.user!.id, undefined, { groupId: result.group?.id });
@@ -617,7 +617,7 @@ apiRouter.post('/groups/join', async (req: AuthenticatedRequest, res: Response) 
     });
   } catch (err) {
     console.error('/groups/join error:', err);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Guruhga qo‘shilishda xatolik.');
+    sendError(res, 500, 'INTERNAL_ERROR', "Guruhga qoshilishda xatolik.");
   }
 });
 
@@ -688,7 +688,7 @@ apiRouter.post('/admin/moderation/action', requireAdmin, async (req: Authenticat
       const data = db.getData();
       const sub = data.submissions.find(s => s.id === submissionId);
       if (sub) {
-        await db.createNotification(sub.userId, 'Video Ogohlantirildi', reason || 'Videongiz moderator tomonidan ko‘rib chiqildi. Iltimos, qoidalarga rioya qiling.', 'WARNING');
+        await db.createNotification(sub.userId, 'Video Ogohlantirildi', reason || "Videongiz moderator tomonidan korib chiqildi. Iltimos, qoidalarga rioya qiling.", 'WARNING');
       }
       moderationStatus = 'APPROVED'; // Keep video but warn user
     }
@@ -741,7 +741,7 @@ apiRouter.put('/admin/schedule', requireAdmin, async (req: AuthenticatedRequest,
   try {
     const user = req.user!;
     if (user.role !== 'SUPER_ADMIN') {
-      return sendError(res, 403, 'FORBIDDEN', 'Faqat Super Admin jadvalni o‘zgartira oladi.');
+      return sendError(res, 403, 'FORBIDDEN', "Faqat Super Admin jadvalni ozgartira oladi.");
     }
 
     const { intervalHours, nextChallengeTime, timezone } = req.body;
@@ -769,16 +769,16 @@ apiRouter.delete('/submissions/:id', async (req: AuthenticatedRequest, res: Resp
 
     const data = db.getData();
     const sub = data.submissions?.find(s => s.id === submissionId);
-    
+
     if (sub && !isAdmin && sub.userId !== user.id) {
-      return sendError(res, 403, 'FORBIDDEN', 'Faqat o‘z videongizni yoki admin sifatida o‘chira olasiz.');
+      return sendError(res, 403, 'FORBIDDEN', "Faqat oz videongizni yoki admin sifatida ochira olasiz.");
     }
 
     await db.updateSubmissionModeration(submissionId, 'REMOVED');
-    res.json({ success: true, message: 'Video muvaffaqiyatli o‘chirildi.' });
+    res.json({ success: true, message: "Video muvaffaqiyatli ochirildi." });
   } catch (err) {
     console.error('/submissions/:id DELETE error:', err);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Videoni o‘chirishda xatolik.');
+    sendError(res, 500, 'INTERNAL_ERROR', "Videoni ochirishda xatolik.");
   }
 });
 
@@ -798,7 +798,7 @@ apiRouter.post('/admin/notifications/:id/read', requireAdmin, async (req: Authen
     res.json({ success: true });
   } catch (err) {
     console.error('/admin/notifications/:id/read error:', err);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Notificationni o‘qilgan deb belgilashda xatolik.');
+    sendError(res, 500, 'INTERNAL_ERROR', "Notificationni okilgan deb belgilashda xatolik.");
   }
 });
 
@@ -831,7 +831,7 @@ apiRouter.post('/submissions/:id/comments', async (req: AuthenticatedRequest, re
     res.json({ success: true, data: { comment: commentWithUser } });
   } catch (err) {
     console.error('/submissions/:id/comments POST error:', err);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Komment qo‘shishda xatolik.');
+    sendError(res, 500, 'INTERNAL_ERROR', "Komment qoshishda xatolik.");
   }
 });
 
@@ -843,7 +843,7 @@ apiRouter.delete('/comments/:id', async (req: AuthenticatedRequest, res: Respons
     res.json(result);
   } catch (err) {
     console.error('/comments/:id DELETE error:', err);
-    sendError(res, 500, 'INTERNAL_ERROR', 'Komment o‘chirishda xatolik.');
+    sendError(res, 500, 'INTERNAL_ERROR', "Komment ochirishda xatolik.");
   }
 });
 
