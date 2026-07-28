@@ -49,11 +49,14 @@ export async function apiRequest<T>(endpoint: string, options: RequestInit = {})
     if (!contentType.includes('application/json')) {
       const text = await res.text();
       console.error(`[API ${endpoint}] Non-JSON response (${res.status}):`, text.slice(0, 200));
+      const message = res.status === 413
+        ? 'Video hajmi juda katta. Server 4.5MB dan katta fayllarni qabul qilmaydi.'
+        : `Server xatolik qaytardi (${res.status}). Iltimos, qaytadan urinib ko'ring.`;
       return {
         success: false,
         error: {
-          code: 'SERVER_ERROR',
-          message: `Server xatolik qaytardi (${res.status}). Iltimos, qaytadan urinib ko'ring.`
+          code: res.status === 413 ? 'FILE_TOO_LARGE' : 'SERVER_ERROR',
+          message
         }
       };
     }

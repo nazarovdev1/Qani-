@@ -168,6 +168,13 @@ export const CameraRecorder: React.FC<CameraRecorderProps> = ({ challenge, lang,
       return;
     }
 
+    // Vercel serverless limit: 4.5MB — client-side check
+    const MAX_VIDEO_SIZE = 4.5 * 1024 * 1024;
+    if (videoBlob.size > MAX_VIDEO_SIZE) {
+      setErrorMsg(`Video hajmi juda katta (${(videoBlob.size / 1024 / 1024).toFixed(1)}MB). Maksimal 4.5MB.`);
+      return;
+    }
+
     setUploading(true);
     setUploadProgress(10);
     setErrorMsg(null);
@@ -223,7 +230,25 @@ export const CameraRecorder: React.FC<CameraRecorderProps> = ({ challenge, lang,
           body: formData
         });
 
-        const directJson = await directRes.json();
+        let directJson: { success: boolean; data?: { fileUrl: string }; error?: { message: string } };
+        const contentType = directRes.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          try {
+            directJson = await directRes.json();
+          } catch {
+            const text = await directRes.text();
+            console.error('Invalid JSON in upload response:', text.slice(0, 300));
+            throw new Error('Serverdan noto\'g\'ri javob keldi.');
+          }
+        } else {
+          const text = await directRes.text();
+          console.error('Non-JSON upload response:', text.slice(0, 300));
+          if (directRes.status === 413) {
+            throw new Error(`Video hajmi juda katta (${(videoBlob.size / 1024 / 1024).toFixed(1)}MB). Server 4.5MB dan katta fayllarni qabul qilmaydi.`);
+          }
+          throw new Error(`Server xatolik qaytardi (${directRes.status}).`);
+        }
+
         if (!directJson.success || !directJson.data?.fileUrl) {
           throw new Error(directJson.error?.message || 'Fayl yuklashda xatolik.');
         }
